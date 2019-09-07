@@ -1,4 +1,4 @@
-# AirTable Based Link Shortener
+# Hack Club's Airtable Based Link Shortener
 
 ## Setup
 
@@ -14,36 +14,12 @@
 
 All links will be routed through a 302 (Temporary Redirect) because you're using AirTable. Simply visit `example.com/slug` to get redirected.
 
-Navigate to `/admin` for a GUI to add new links.
+## No API?
 
-## Using the API
+I'm insecure about my ability to write software with great security measures, therefore all components originally written as the API has been removed for this distribution. 
 
-You can make changes the database easily with the API.
-
-### `/api/trace`
-Find where a slug points to without getting redirected.
-
-#### Parameters
-* `slug` (required) - the slug you're looking up.
-
-#### Result
-* `dest` - the destination URL.
-* `error` - the error message, if exists.
-* `status` - status code of the request
-
-### `/api/push`
-Make changes to a specific record.
-
-#### Parameters
-* `auth` (required) - the `APP_SECRET` environment variable, used for authentication.
-* `dest` (optional) - the destination URL you're pointing to. Must exist if `slug` does not exist.
-* `slug` (optional) - the slug you're making changes to. If it does not exist, a random slug will be generated. Must exist if `dest` does not exist.
-
-#### Result
-* `error` - the error message, if exists.
-* `slug` - the slug of the short link, if generated
-* `status` - status code of the request
+If API access is needed, please invent your own wheel with AirTable API. See implementation example at https://go.mingjie.info/code.
 
 ## License
 
-ABLS is released under [the MIT license](LICENSE).
+This project is released under [the MIT license](LICENSE).
