@@ -71,7 +71,7 @@ var lookup = (slug, idOnly) => {
         if (cache[slug] && timeNow < cache[slug].expires) {
             // valid cache
             console.log("Yeet. Cache has what I needed.")
-            return idOnly ? cache[slug].id : cache[slug].dest
+            resolve(idOnly ? cache[slug].id : cache[slug].dest)
         } else {
             console.log("Oops. Can't find useful data in cache. Asking Airtable.")
             base('Links').select({
