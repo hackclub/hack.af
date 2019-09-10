@@ -1,10 +1,10 @@
 var Airtable = require('airtable')
 var express = require('express')
-var randomstring = require("randomstring")
 var bodyParser = require("body-parser")
 var isBot = require('isbot')
 
 var app = express()
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
@@ -23,6 +23,8 @@ require('dotenv').config()
 var base = new Airtable({
     apiKey: process.env.AIRTABLE_KEY
 }).base(process.env.AIRTABLE_BASE)
+
+var cache = {}
 
 app.get('/', (req, res) => {
     return res.redirect(302, process.env.ROOT_REDIRECT)
@@ -64,30 +66,46 @@ app.get('/*', (req, res) => {
 var lookup = (slug, idOnly) => {
     return new Promise(function (resolve, reject) {
 
-        base('Links').select({
-            filterByFormula: '{slug} = "' + slug + '"'
-        }).eachPage(function page(records, fetchNextPage) {
-            if (records.length > 0) {
-                records.forEach(function (record) {
-                    if (idOnly)
-                        resolve(record.getId())
-                    else
-                        resolve(record.get('destination'))
-                });
-            } else {
-                fetchNextPage();
-            }
-        }, function done(err) {
-            if (err) {
-                // api jam
-                console.error(err);
-                reject(500)
-            } else {
-                // all records scanned - no match
-                reject(404)
-            }
-        });
-    });
+        const timeNow = Math.round((new Date()).getTime() / 1000)
+
+        if (cache[slug] && timeNow < cache[slug].expires) {
+            // valid cache
+            console.log("Yeet. Cache has what I needed.")
+            return idOnly ? cache[slug].id : cache[slug].dest
+        } else {
+            console.log("Oops. Can't find useful data in cache. Asking Airtable.")
+            base('Links').select({
+                filterByFormula: '{slug} = "' + slug + '"'
+            }).eachPage(function page(records, fetchNextPage) {
+                if (records.length > 0) {
+                    records.forEach(function (record) {
+
+                        cache[slug] = {
+                            id: record.getId(),
+                            dest: record.get('destination'),
+                            expires: timeNow + 60 * 5 //5 minute cache
+                        }
+
+                        if (idOnly)
+                            resolve(record.getId())
+                        else
+                            resolve(record.get('destination'))
+                    });
+                } else {
+                    fetchNextPage()
+                }
+            }, function done(err) {
+                if (err) {
+                    // api jam
+                    console.error(err);
+                    reject(500)
+                } else {
+                    // all records scanned - no match
+                    reject(404)
+                }
+            })
+        }
+    })
 }
 
 function logAccess(ip, slug, url) {
