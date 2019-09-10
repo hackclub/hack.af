@@ -5,10 +5,8 @@
 * Please make a copy of the template AirTable Base: [https://go.mingjie.info/template](https://go.mingjie.info/template)
 * Please also grab the AirTable API Key & Base Key from the API documentations. Head [here](https://airtable.com/api) and click on the base you just created to get started.
 * Set `AIRTABLE_BASE` to your Base Key, and `AIRTABLE_KEY` to your API Key.
-* Set `APP_USER` to your desired username.
-* Set `APP_SECRET` to a passphrase or key that only you know.
 * Set `LOGGING` to `on` if you want to enable logging, `off` if otherwise.
-* Set `ROOT_REDIRECT` to the URL you want people to be redirected to when they visit the landing page.
+* Set `CACHE_EXPIRATION` to the number of seconds you want the local cache to be valid.
 
 ## Using
 
