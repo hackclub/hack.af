@@ -26,10 +26,6 @@ var base = new Airtable({
 
 var cache = {}
 
-app.get('/', (req, res) => {
-    return res.redirect(302, process.env.ROOT_REDIRECT)
-})
-
 // temporary static redirect
 app.get('/vip/:id', (req, res) => {
     lookup("vip").then(
@@ -45,6 +41,10 @@ app.get('/vip/:id', (req, res) => {
 // not api: fetch URL and redirect
 app.get('/*', (req, res) => {
     var slug = req.path.substring(1)
+
+    // prevent an ugly empty record for root redirect
+    if (slug == "")
+        slug = "/"
 
     if (!isBot(req.headers['user-agent']))
         logAccess(getClientIp(req), slug, req.protocol + '://' + req.get('host') + req.originalUrl)
