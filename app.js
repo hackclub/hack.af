@@ -28,6 +28,18 @@ app.get('/', (req, res) => {
     return res.redirect(302, process.env.ROOT_REDIRECT)
 })
 
+// temporary static redirect
+app.get('/vip/:id', (req, res) => {
+    lookup("vip").then(
+        result => {
+            res.redirect(302, result + req.params.id)
+        },
+        error => {
+            res.status(error)
+        }
+    )
+})
+
 // not api: fetch URL and redirect
 app.get('/*', (req, res) => {
     var slug = req.path.substring(1)
