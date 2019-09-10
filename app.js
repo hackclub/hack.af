@@ -64,8 +64,6 @@ app.get('/*', (req, res) => {
 })
 
 var lookup = (slug, idOnly) => {
-    console.log(cache)
-
     return new Promise(function (resolve, reject) {
 
         const timeNow = Math.round((new Date()).getTime() / 1000)
@@ -73,6 +71,7 @@ var lookup = (slug, idOnly) => {
         if (cache[slug] && timeNow < cache[slug].expires) {
             // valid cache
             console.log("Yeet. Cache has what I needed.")
+            console.log(cache[slug])
             resolve(idOnly ? cache[slug].id : cache[slug].dest)
         } else {
             console.log("Oops. Can't find useful data in cache. Asking Airtable.")
