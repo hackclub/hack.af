@@ -64,6 +64,8 @@ app.get('/*', (req, res) => {
 })
 
 var lookup = (slug, idOnly) => {
+    console.log(cache)
+
     return new Promise(function (resolve, reject) {
 
         const timeNow = Math.round((new Date()).getTime() / 1000)
@@ -83,7 +85,7 @@ var lookup = (slug, idOnly) => {
                         cache[slug] = {
                             id: record.getId(),
                             dest: record.get('destination'),
-                            expires: timeNow + 60 * 5 //5 minute cache
+                            expires: timeNow + parseInt(process.env.CACHE_EXPIRATION)
                         }
 
                         if (idOnly)
