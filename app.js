@@ -5,7 +5,8 @@ var isBot = require('isbot')
 
 var app = express()
 
-app.use(bodyParser.json());
+app.use(forceHttps)
+app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
     extended: true
 }))
@@ -148,4 +149,14 @@ function getClientIp(req) {
         ipAddress = req.connection.remoteAddress
     }
     return ipAddress
+}
+
+// middleware to force traffic to https
+function forceHttps(req, res, next) {
+    console.log(process.env.NODE_ENV)
+
+    if (!req.secure && req.get('x-forwarded-proto') !== 'https' && process.env.NODE_ENV !== "development") {
+        return res.redirect('https://' + req.get('host') + req.url)
+    }
+    next()
 }
