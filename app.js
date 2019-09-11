@@ -43,6 +43,10 @@ app.get('/vip/:id', (req, res) => {
 app.get('/*', (req, res) => {
     var slug = req.path.substring(1)
 
+    // remove trailing slash
+    if (slug.substring(slug.length - 1) == "/")
+       slug = slug.substring(0, slug.length - 1)
+
     // prevent an ugly empty record for root redirect
     if (slug == "")
         slug = "/"
