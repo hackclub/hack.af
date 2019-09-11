@@ -114,11 +114,16 @@ function logAccess(ip, ua, slug, url) {
     if (process.env.LOGGING == "off")
         return
 
+    // UA strings to identify as bot
+    const botUA = [
+        "apex/ping/v1.0"
+    ]
+
     var data = {
         "Timestamp": Date.now(),
         "Client IP": ip,
         "User Agent": ua,
-        "Bot": isBot(ua),
+        "Bot": isBot(ua) || botUA.includes(ua),
         "Slug": [],
         "URL": url
     }
