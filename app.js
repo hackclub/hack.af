@@ -46,8 +46,7 @@ app.get('/*', (req, res) => {
     if (slug == "")
         slug = "/"
 
-    if (!isBot(req.headers['user-agent']))
-        logAccess(getClientIp(req), slug, req.protocol + '://' + req.get('host') + req.originalUrl)
+    logAccess(getClientIp(req), req.headers['user-agent'], slug, req.protocol + '://' + req.get('host') + req.originalUrl)
 
     lookup(slug).then(
         result => {
@@ -109,7 +108,7 @@ var lookup = (slug, idOnly) => {
     })
 }
 
-function logAccess(ip, slug, url) {
+function logAccess(ip, ua, slug, url) {
 
     if (process.env.LOGGING == "off")
         return
@@ -117,6 +116,8 @@ function logAccess(ip, slug, url) {
     var data = {
         "Timestamp": Date.now(),
         "Client IP": ip,
+        "User Agent": ua,
+        "Bot": isBot(ua),
         "Slug": [],
         "URL": url
     }
