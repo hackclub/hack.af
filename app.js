@@ -58,7 +58,7 @@ app.get('/*', (req, res) => {
 
     lookup(slug).then(
         destination => {
-            var resultURL = new URL(destination).origin
+            var resultURL = new URL(destination).origin + new URL(destination).pathname
             var resultQuery = combineQueries(querystring.parse(new URL(destination).searchParams.toString()), query)
             res.redirect(302, resultURL + resultQuery)
         },
