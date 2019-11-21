@@ -2,7 +2,6 @@ var Airtable = require('airtable')
 var express = require('express')
 var bodyParser = require("body-parser")
 var isBot = require('isbot')
-var querystring = require('querystring')
 
 var app = express()
 
@@ -12,9 +11,8 @@ app.use(bodyParser.urlencoded({
     extended: true
 }))
 
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-    console.log("ABSL is up and running on port", port)
+app.listen(process.env.PORT || 3000, () => {
+    console.log("ABSL is up and running.")
 })
 
 require('dotenv').config()
@@ -44,7 +42,6 @@ app.get('/vip/:id', (req, res) => {
 // not api: fetch URL and redirect
 app.get('/*', (req, res) => {
     var slug = req.path.substring(1)
-    var query = req.query
 
     // remove trailing slash
     if (slug.substring(slug.length - 1) == "/")
@@ -57,10 +54,8 @@ app.get('/*', (req, res) => {
     logAccess(getClientIp(req), req.headers['user-agent'], slug, req.protocol + '://' + req.get('host') + req.originalUrl)
 
     lookup(slug).then(
-        destination => {
-            var resultURL = new URL(destination).origin
-            var resultQuery = combineQueries(querystring.parse(new URL(destination).searchParams.toString()), query)
-            res.redirect(302, resultURL + resultQuery)
+        result => {
+            res.redirect(302, result)
         },
         error => {
             if (error == 404) {
@@ -71,15 +66,6 @@ app.get('/*', (req, res) => {
         }
     )
 })
-
-var combineQueries = (q1, q2) => {
-    var combinedQuery = {...q1, ...q2}
-    var combinedQueryString = querystring.stringify(combinedQuery)
-    if (combinedQueryString) {
-        combinedQueryString = '?' + combinedQueryString
-    }
-    return combinedQueryString
-}
 
 var lookup = (slug, idOnly) => {
     return new Promise(function (resolve, reject) {
