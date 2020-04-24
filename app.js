@@ -137,6 +137,10 @@ function logAccess(ip, ua, slug, url) {
         "apex/ping/v1.0"
     ]
 
+    // do not log if the BOT_LOGGING flag is off
+    if (process.env.BOT_LOGGING == "off" && (isBot(ua) || botUA.includes(ua)))
+        return
+
     var data = {
         "Timestamp": Date.now(),
         "Client IP": ip,
