@@ -7,10 +7,12 @@
   "license": "MIT",
   "dependencies": {
     "airtable": "^0.7.2",
+    "dot-prop": "^4.2.1",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "http-auth": "^3.2.3",
     "isbot": "^2.4.0",
+    "lodash": "^4.17.19",
     "randomstring": "^1.1.5"
   },
   "scripts": {
