@@ -7,25 +7,24 @@ module.exports = async (req, res) => {
 
   // remove trailing slash
   slug = slug.replace(/\/$/, '')
-  console.log('SLUG', slug)
 
   logAccess(getClientIp(req), req.headers['user-agent'], slug, req.url)
 
   const opts = JSON.stringify({
     filterByFormula: `{slug} = "${slug}"`,
-    maxRecords: 1
+    maxRecords: 1,
   })
-  console.log(
-    `https://airbridge.hackclub.com/v0.1/hack.af/Links?authKey=${process.env.AIRTABLE_KEY}&select=${opts}`
+
+  const resultURL = await fetch(
+    `https://airbridge.hackclub.com/v0.1/${process.env.AIRTABLE_BASE}/Links?authKey=${process.env.AIRTABLE_KEY}&select=${opts}`
   )
-  let resultURL = await fetch(
-    `https://airbridge.hackclub.com/v0.1/hack.af/Links?authKey=${process.env.AIRTABLE_KEY}&select=${opts}`
-  )
-    .then(r => r.json())
-    .then(a => (Array.isArray(a) ? a[0] : a))
-  console.log('RESULT', resultURL)
+    .then((r) => r.json())
+    .then((a) => (Array.isArray(a) ? a[0] : a))
+    .then((e) => (e ? e.fields.destination : undefined))
+
   if (!resultURL) {
-    return res.status(404).json({ error: '404 not found' })
+    // backwards compatibility: serve unknown slugs with https://goo.gl
+    return res.redirect(302, 'https://goo.gl/' + slug)
   }
 
   const resultQuery = combineQueries(
@@ -33,13 +32,7 @@ module.exports = async (req, res) => {
     query
   )
 
-  res.redirect(302, resultURL + resultQuery)
-
-  if (error == 404) {
-    res.redirect(302, 'https://goo.gl/' + slug)
-  } else {
-    res.status(error)
-  }
+  return res.redirect(302, resultURL + resultQuery)
 }
 
 const combineQueries = (q1, q2) => {
@@ -61,7 +54,7 @@ const logAccess = (ip, ua, slug, url) => {
     'User Agent': ua,
     Bot: isBot(ua),
     Slug: [],
-    URL: url
+    URL: url,
   }
 
   /*
@@ -82,7 +75,7 @@ const logAccess = (ip, ua, slug, url) => {
   console.log('Logging', data)
 }
 
-const getClientIp = req => {
+const getClientIp = (req) => {
   let ipAddress
   const forwardedIpsStr = req.headers['x-forwarded-for']
   if (forwardedIpsStr) {
