@@ -44,11 +44,11 @@ const combineQueries = (q1, q2) => {
   return combinedQueryString
 }
 
-const logAccess = (ip, ua, slug, url) => {
+const logAccess = async (ip, ua, slug, url) => {
   // do not log if the BOT_LOGGING flag is off
   if (process.env.BOT_LOGGING == 'off' && isBot(ua)) return
 
-  var data = {
+  const data = {
     Timestamp: Date.now(),
     'Client IP': ip,
     'User Agent': ua,
@@ -57,22 +57,16 @@ const logAccess = (ip, ua, slug, url) => {
     URL: url,
   }
 
-  /*
-  lookup(slug, true)
-    .then(result => {
-      data['Slug'][0] = result
-    })
-    .finally(() => {
-      base('Log').create(data, function (err, record) {
-        if (err) {
-          console.error(err)
-          return
-        }
-      })
-    })
-    */
-
-  console.log('Logging', data)
+  const upload = await fetch(
+    `https://airbridge.hackclub.com/v0.1/${process.env.AIRTABLE_BASE}/Log?authKey=${process.env.AIRTABLE_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }
+  )
 }
 
 const getClientIp = (req) => {
