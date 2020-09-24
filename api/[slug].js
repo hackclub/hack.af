@@ -8,24 +8,30 @@ module.exports = async (req, res) => {
   // remove trailing slash
   slug = slug.replace(/\/$/, '')
 
-  logAccess(getClientIp(req), req.headers['user-agent'], slug, req.url)
-
   const opts = JSON.stringify({
     filterByFormula: `{slug} = "${slug}"`,
     maxRecords: 1,
   })
 
-  const resultURL = await fetch(
+  const result = await fetch(
     `https://airbridge.hackclub.com/v0.1/${process.env.AIRTABLE_BASE}/Links?authKey=${process.env.AIRTABLE_KEY}&select=${opts}`
   )
     .then((r) => r.json())
     .then((a) => (Array.isArray(a) ? a[0] : a))
-    .then((e) => (e ? e.fields.destination : undefined))
+  const resultURL = result ? result.fields.destination : undefined
 
   if (!resultURL) {
     // backwards compatibility: serve unknown slugs with https://goo.gl
     return res.redirect(302, 'https://goo.gl/' + slug)
   }
+  
+  // log access using `result.id` for record ID
+  await logAccess(
+    getClientIp(req),
+    req.headers['user-agent'],
+    result.id,
+    req.url
+  )
 
   const resultQuery = combineQueries(
     querystring.parse(new URL(resultURL).searchParams.toString()),
@@ -44,7 +50,7 @@ const combineQueries = (q1, q2) => {
   return combinedQueryString
 }
 
-const logAccess = async (ip, ua, slug, url) => {
+const logAccess = async (ip, ua, slugRecord, url) => {
   // do not log if the BOT_LOGGING flag is off
   if (process.env.BOT_LOGGING == 'off' && isBot(ua)) return
 
@@ -53,7 +59,7 @@ const logAccess = async (ip, ua, slug, url) => {
     'Client IP': ip,
     'User Agent': ua,
     Bot: isBot(ua),
-    Slug: [],
+    Slug: [slugRecord],
     URL: url,
   }
 
