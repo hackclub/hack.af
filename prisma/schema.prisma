@@ -1,0 +1,24 @@
+datasource db {
+    url      = env("DATABASE_URL")
+    provider = "postgresql"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model Link {
+    slug   String @id
+    url    String
+    clicks Int
+}
+
+model Log {
+    id        Int      @id @default(autoincrement())
+    timestamp DateTime
+    clientIP  String
+    userAgent String
+    bot       Boolean
+    slug      String
+    url       String?
+}
