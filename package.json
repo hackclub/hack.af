@@ -1,19 +1,23 @@
 {
-  "name": "@hackclub/hack.af",
-  "version": "2.0.0",
+  "name": "hack.af",
+  "version": "1.0.0",
   "description": "Airtable Based Link Shortener for Hack Club",
   "repository": "https://github.com/hackclub/hack.af",
-  "contributors": [
-    "Mingjie Jiang <jiang@mingjie.info>",
-    "Lachlan Campbell <lachlan@hackclub.com>",
-    "Zane Davis-Barrs <github@zane.sh> (https://zane.sh)"
-  ],
+  "author": "Mingjie Jiang<jiang@mingjie.info>",
   "license": "MIT",
   "dependencies": {
-    "airtable": "^0.9.0",
-    "isbot": "^3.0.7",
-    "isomorphic-unfetch": "^3.0.0",
-    "lodash": "^4.17.21",
+    "airtable": "^0.7.1",
+    "dotenv": "^8.1.0",
+    "express": "^4.17.1",
+    "http-auth": "^3.2.3",
+    "isbot": "^2.4.0",
     "randomstring": "^1.1.5"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0"
   }
 }
