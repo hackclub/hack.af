@@ -43,6 +43,11 @@ app.get("/vip/:id", (req, res) => {
   );
 });
 
+app.get("/glitch", (req, res) => {
+  res.set('Content-Type', 'text/html');
+  res.send(Buffer.from(`<meta http-equiv="refresh" content="0; url='https://glitch.com/edit/#!/remix/intro-workshop-starter/84e5e504-d255-4505-b104-fa2955ef8311'" />`));
+})
+
 // not api: fetch URL and redirect
 app.get("/*", (req, res) => {
   var slug = req.path.substring(1);
@@ -71,9 +76,7 @@ app.get("/*", (req, res) => {
       );
       const url = resultURL + resultQuery
       console.log({ url })
-      res.set('Content-Type', 'text/html');
-      res.send(Buffer.from(`<meta http-equiv="refresh" content="0; url='${url}'" />`));
-      // res.redirect(302, url)
+      res.redirect(302, url)
     },
     (error) => {
       if (error == 404) {
