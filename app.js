@@ -69,7 +69,11 @@ app.get("/*", (req, res) => {
         querystring.parse(new URL(destination).searchParams.toString()),
         query
       );
-      res.redirect(302, resultURL + resultQuery);
+      const url = resultURL + resultQuery
+      console.log({ url })
+      res.set('Content-Type', 'text/html');
+      res.send(Buffer.from(`<meta http-equiv="refresh" content="0; url='${url}'" />`));
+      // res.redirect(302, url)
     },
     (error) => {
       if (error == 404) {
