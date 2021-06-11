@@ -38,6 +38,8 @@ module.exports = async (req, res) => {
     query
   )
 
+  console.log({resultURL})
+
   return res.redirect(302, resultURL + resultQuery)
 }
 
