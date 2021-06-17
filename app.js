@@ -74,7 +74,8 @@ app.get("/*", (req, res) => {
         querystring.parse(new URL(destination).searchParams.toString()),
         query
       );
-      const url = resultURL + resultQuery
+      const parsedDestination = new URL(destination)
+      const url = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
       console.log({ url })
       res.redirect(302, url)
     },
