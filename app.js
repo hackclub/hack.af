@@ -67,7 +67,7 @@ app.get("/*", (req, res) => {
     req.protocol + "://" + req.get("host") + req.originalUrl
   );
 
-  lookup(slug).then(
+  lookup(decodeURI(slug)).then(
     (destination) => {
       const resultURL = destination
       var resultQuery = combineQueries(
