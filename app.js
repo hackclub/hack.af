@@ -86,7 +86,9 @@ app.get("/*", (req, res) => {
         res.status(error);
       }
     }
-  );
+  ).catch(err => {
+    res.redirect(302, "https://goo.gl/" + slug);
+  })
 });
 
 var combineQueries = (q1, q2) => {
