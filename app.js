@@ -31,6 +31,11 @@ var base = new Airtable({
 
 var cache = {};
 
+// Pinged by uptime checker at status.hackclub.com regularly
+app.get("/ping", (req, res) => {
+  res.send("pong")
+})
+
 // temporary static redirect
 app.get("/vip/:id", (req, res) => {
   lookup("vip").then(
