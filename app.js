@@ -170,6 +170,7 @@ function logAccess(ip, ua, slug, url) {
     .then((result) => {
       data["Slug"][0] = result;
     })
+    .catch(e => { console.log(e) })
     .finally(() => {
       base("Log").create(data, function (err, record) {
         if (err) {
