@@ -1,5 +1,7 @@
 # hack.af
 
+_⚠️ GitHub & Heroku have turned off their integration while investigating a [breach](https://github.blog/2022-04-15-security-alert-stolen-oauth-user-tokens/), so changes will not automatically deploy after pushing to `main`. If you have access to do so, please [push your changes to the `main` branch of the Heroku git remote](https://devcenter.heroku.com/articles/git) once your PR is merged. Otherwise, please mention it in the PR and assign [@maxwofford](https://github.com/maxwofford) or [@sampoder](https://github.com/sampoder) for review._
+
 > [Hack Club](https://hackclub.com)’s Airtable-Based Link Shortener
 
 ## Setup
