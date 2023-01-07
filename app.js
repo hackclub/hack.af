@@ -53,6 +53,10 @@ app.get("/glitch", (req, res) => {
   res.send(Buffer.from(`<meta http-equiv="refresh" content="0; url='https://glitch.com/edit/#!/remix/intro-workshop-starter/84e5e504-d255-4505-b104-fa2955ef8311'" />`));
 })
 
+app.get("/gib/:org", (req, res) => { // the "/donate" slug is taken
+  res.redirect(302, "https://bank.hackclub.com/donations/start/" + req.params.org)
+})
+
 // not api: fetch URL and redirect
 app.get("/*", (req, res) => {
   var slug = req.path.substring(1);
