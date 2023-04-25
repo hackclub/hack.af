@@ -1,4 +1,4 @@
-var Airtable = require("airtable");
+const { Client } = require("pg");
 var express = require("express");
 var bodyParser = require("body-parser");
 var isBot = require("isbot");
@@ -21,13 +21,13 @@ app.listen(port, () => {
 
 require("dotenv").config();
 
-// all components originally written as API has been removed for this distribution
-// if API access is needed, please invent your own wheel with AirTable API
-// see implementation example at https://go.mingjie.info/code
+const connectionString = process.env.POSTGRES_CONNECTION_STRING; // add your postgres connection string here or replace it with something cool variable in .env
 
-var base = new Airtable({
-  apiKey: process.env.AIRTABLE_KEY,
-}).base(process.env.AIRTABLE_BASE);
+const client = new Client({
+  connectionString,
+});
+
+client.connect();
 
 var cache = {};
 
@@ -109,85 +109,79 @@ var combineQueries = (q1, q2) => {
   return combinedQueryString;
 };
 
-var lookup = (slug, idOnly) => {
-  return new Promise(function (resolve, reject) {
-    const timeNow = Math.round(new Date().getTime() / 1000);
+const lookup = async (slug, idOnly) => {
+  const timeNow = Math.round(new Date().getTime() / 1000);
 
-    if (cache[slug] && timeNow < cache[slug].expires) {
-      // valid cache
-      console.log("Yeet. Cache has what I needed.");
-      console.log(cache[slug]);
-      resolve(idOnly ? cache[slug].id : cache[slug].dest);
+  if (cache[slug] && timeNow < cache[slug].expires) {
+    console.log("Yeet. Cache has what I needed.");
+    console.log(cache[slug]);
+    return idOnly ? cache[slug].id : cache[slug].dest;
+  } else {
+    console.log("Oops. Can't find useful data in cache. Asking Postgres.");
+    const res = await client.query(
+      "SELECT id, destination FROM links WHERE slug = $1",
+      [slug]
+    );
+
+    if (res.rows.length > 0) {
+      cache[slug] = {
+        id: res.rows[0].id,
+        dest: res.rows[0].destination,
+        expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
+      };
+
+      return idOnly ? res.rows[0].id : res.rows[0].destination;
     } else {
-      console.log("Oops. Can't find useful data in cache. Asking Airtable.");
-      base("Links")
-        .select({
-          filterByFormula: '{slug} = "' + slug + '"',
-        })
-        .eachPage(
-          function page(records, fetchNextPage) {
-            if (records.length > 0) {
-              records.forEach(function (record) {
-                cache[slug] = {
-                  id: record.getId(),
-                  dest: record.get("destination"),
-                  expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
-                };
-
-                if (idOnly) resolve(record.getId());
-                else resolve(record.get("destination"));
-              });
-            } else {
-              fetchNextPage();
-            }
-          },
-          function done(err) {
-            if (err) {
-              // api jam
-              console.error(err);
-              reject(500);
-            } else {
-              // all records scanned - no match
-              reject(404);
-            }
-          }
-        );
+      return null;
     }
-  });
+  }
 };
 
-function logAccess(ip, ua, slug, url) {
+async function logAccess(ip, ua, slug, url) {
   if (process.env.LOGGING == "off") return;
 
-  // UA strings to identify as bot
   const botUA = ["apex/ping/v1.0"];
 
-  // do not log if the BOT_LOGGING flag is off
   if (process.env.BOT_LOGGING == "off" && (isBot(ua) || botUA.includes(ua)))
     return;
 
-  var data = {
-    Timestamp: Date.now(),
-    "Client IP": ip,
-    "User Agent": ua,
-    Bot: isBot(ua) || botUA.includes(ua),
-    Slug: [],
-    URL: url,
+  let linkId;
+  try {
+    linkId = await lookup(slug, true);
+    if (linkId === null) {
+      console.log("Slug not found, skipping logging");
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+  }
+
+  const data = {
+    timestamp: new Date(),
+    client_ip: ip,
+    user_agent: ua,
+    bot: isBot(ua) || botUA.includes(ua),
+    slug: linkId,
+    url: url,
   };
 
-  lookup(slug, true)
-    .then((result) => {
-      data["Slug"][0] = result;
-    })
-    .catch(e => { console.log(e) })
-    .finally(() => {
-      base("Log").create(data, function (err, record) {
-        if (err) {
-          console.error(err);
-          return;
-        }
-      });
-    });
+  client.query(
+    `INSERT INTO logs (timestamp, client_ip, user_agent, bot, slug, url)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      data.timestamp,
+      data.client_ip,
+      data.user_agent,
+      data.bot,
+      data.slug,
+      data.url,
+    ],
+    (err, res) => {
+      if (err) {
+        console.error(err);
+      }
+    }
+  );
 }
 
 function getClientIp(req) {
