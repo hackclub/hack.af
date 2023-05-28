@@ -5,6 +5,7 @@
   "repository": "https://github.com/hackclub/hack.af",
   "author": "Mingjie Jiang<jiang@mingjie.info>",
   "license": "MIT",
+  "type": "module",
   "dependencies": {
     "dotenv": "^8.6.0",
     "express": "^4.17.1",

@@ -1,42 +1,35 @@
-const { Client } = require("pg");
-var express = require("express");
-var bodyParser = require("body-parser");
-var isBot = require("isbot");
-var querystring = require("querystring");
+import pkg from 'pg';
+const { Client } = pkg;
+import express from "express";
+import bodyParser from "body-parser";
+import isBot from "isbot";
+import querystring from "querystring";
+import dotenv from "dotenv";
 
-var app = express();
+dotenv.config();
 
-app.use(forceHttps);
-app.use(bodyParser.json());
-app.use(
-  bodyParser.urlencoded({
-    extended: true,
-  })
-);
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log("Hack.af is up and running on port", port);
-});
-
-require("dotenv").config();
-
-const connectionString = process.env.POSTGRES_CONNECTION_STRING; // add your postgres connection string here or replace it with something cool variable in .env
-
+const connectionString = process.env.POSTGRES_CONNECTION_STRING;
 const client = new Client({
   connectionString,
 });
 
 client.connect();
 
-var cache = {};
+const app = express();
 
-// Pinged by uptime checker at status.hackclub.com regularly
+app.use(forceHttps);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log("Hack.af is up and running on port", port);
+});
+
 app.get("/ping", (req, res) => {
-  res.send("pong")
-})
+  res.send("pong");
+});
 
-// temporary static redirect
 app.get("/vip/:id", (req, res) => {
   lookup("vip").then(
     (result) => {
@@ -51,23 +44,21 @@ app.get("/vip/:id", (req, res) => {
 app.get("/glitch", (req, res) => {
   res.set('Content-Type', 'text/html');
   res.send(Buffer.from(`<meta http-equiv="refresh" content="0; url='https://glitch.com/edit/#!/remix/intro-workshop-starter/84e5e504-d255-4505-b104-fa2955ef8311'" />`));
-})
+});
 
-app.get("/gib/:org", (req, res) => { // the "/donate" slug is taken
-  res.redirect(302, "https://bank.hackclub.com/donations/start/" + req.params.org)
-})
+app.get("/gib/:org", (req, res) => {
+  res.redirect(302, "https://bank.hackclub.com/donations/start/" + req.params.org);
+});
 
-// not api: fetch URL and redirect
 app.get("/*", (req, res) => {
-  var slug = req.path.substring(1);
-  var query = req.query;
+  const slug = req.path.substring(1);
+  const query = req.query;
 
-  // remove trailing slash
-  if (slug.substring(slug.length - 1) == "/")
+  if (slug.endsWith("/")) {
     slug = slug.substring(0, slug.length - 1);
+  }
 
-  // prevent an ugly empty record for root redirect
-  if (slug == "") slug = "/";
+  if (slug === "") slug = "/";
 
   logAccess(
     getClientIp(req),
@@ -78,72 +69,50 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
-      const resultURL = destination
       var resultQuery = combineQueries(
-        querystring.parse(new URL(destination).searchParams.toString()),
+        querystring.parse(new URL(destination).search),
         query
       );
-      const parsedDestination = new URL(destination)
-      const url = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
-      console.log({ url })
-      res.redirect(302, url)
+      const parsedDestination = new URL(destination);
+      const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
+      console.log({ finalURL })
+      res.redirect(302, finalURL)
     },
     (error) => {
-      if (error == 404) {
-        res.redirect(302, "https://goo.gl/" + slug);
-      } else {
-        res.status(error);
-      }
+      res.redirect(302, "https://hackclub.com/404");
     }
-  ).catch(err => {
+  ).catch(() => {
     res.redirect(302, "https://goo.gl/" + slug);
-  })
+  });
 });
 
-var combineQueries = (q1, q2) => {
-  var combinedQuery = { ...q1, ...q2 };
-  var combinedQueryString = querystring.stringify(combinedQuery);
+function combineQueries(q1, q2) {
+  const combinedQuery = { ...q1, ...q2 };
+  let combinedQueryString = querystring.stringify(combinedQuery);
   if (combinedQueryString) {
     combinedQueryString = "?" + combinedQueryString;
   }
   return combinedQueryString;
-};
+}
 
-const lookup = async (slug, idOnly) => {
-  const timeNow = Math.round(new Date().getTime() / 1000);
+const lookup = async (slug) => {
+  const res = await client.query(
+    "SELECT id, destination FROM links WHERE slug = $1",
+    [slug]
+  );
 
-  if (cache[slug] && timeNow < cache[slug].expires) {
-    console.log("Yeet. Cache has what I needed.");
-    console.log(cache[slug]);
-    return idOnly ? cache[slug].id : cache[slug].dest;
+  if (res.rows.length > 0) {
+    return res.rows[0].destination;
   } else {
-    console.log("Oops. Can't find useful data in cache. Asking Postgres.");
-    const res = await client.query(
-      "SELECT id, destination FROM links WHERE slug = $1",
-      [slug]
-    );
-
-    if (res.rows.length > 0) {
-      cache[slug] = {
-        id: res.rows[0].id,
-        dest: res.rows[0].destination,
-        expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
-      };
-
-      return idOnly ? res.rows[0].id : res.rows[0].destination;
-    } else {
-      return null;
-    }
+    throw new Error('Slug not found');
   }
 };
 
 async function logAccess(ip, ua, slug, url) {
-  if (process.env.LOGGING == "off") return;
+  if (process.env.LOGGING === "off") return;
 
   const botUA = ["apex/ping/v1.0"];
-
-  if (process.env.BOT_LOGGING == "off" && (isBot(ua) || botUA.includes(ua)))
-    return;
+  if (process.env.BOT_LOGGING === "off" && (isBot(ua) || botUA.includes(ua))) return;
 
   let linkId;
   try {
@@ -185,23 +154,15 @@ async function logAccess(ip, ua, slug, url) {
 }
 
 function getClientIp(req) {
-  var ipAddress;
-
-  var forwardedIpsStr = req.header("x-forwarded-for");
+  const forwardedIpsStr = req.header("x-forwarded-for");
   if (forwardedIpsStr) {
-    var forwardedIps = forwardedIpsStr.split(",");
-    ipAddress = forwardedIps[0];
+    const forwardedIps = forwardedIpsStr.split(",");
+    return forwardedIps[0];
   }
-  if (!ipAddress) {
-    ipAddress = req.connection.remoteAddress;
-  }
-  return ipAddress;
+  return req.connection.remoteAddress;
 }
 
-// middleware to force traffic to https
 function forceHttps(req, res, next) {
-  console.log(process.env.NODE_ENV);
-
   if (
     !req.secure &&
     req.get("x-forwarded-proto") !== "https" &&
