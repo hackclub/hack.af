@@ -76,7 +76,7 @@ app.get("/*", (req, res) => {
       const parsedDestination = new URL(destination);
       const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
       console.log({ finalURL })
-      res.redirect(302, finalURL)
+      res.redirect(307, finalURL)
     },
     (error) => {
       res.redirect(302, "https://hackclub.com/404");
