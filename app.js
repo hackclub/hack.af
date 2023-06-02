@@ -18,7 +18,7 @@ const SlackApp = new App({
   logLevel: LogLevel.DEBUG,
 });
 
-const connectionString = process.env.POSTGRES_CONNECTION_STRING;
+const connectionString = process.env.DATABASE_URL;
 const client = new Client({
   connectionString,
 });
