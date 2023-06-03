@@ -48,12 +48,32 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
     slug = customSlug;
   }
 
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
   await client.query(
-    "INSERT INTO links (slug, destination) VALUES ($1, $2)",
-    [slug, originalUrl]
+    "INSERT INTO links (slug, destination, qr_link) VALUES ($1, $2, $3)",
+    [slug, originalUrl, qrUrl]
   );
 
-  await say(`Your short URL: https://hack.af/${slug}`);
+  await say({
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `Your short URL: https://hack.af/${slug}`
+        },
+      },
+      {
+        type: 'image',
+        title: {
+          type: 'plain_text',
+          text: 'QR Code'
+        },
+        image_url: qrUrl,
+        alt_text: 'QR Code for your URL'
+      }
+    ]
+  });
 });
 
 app.get("/ping", (_req, res) => {
@@ -149,7 +169,7 @@ async function logAccess(ip, ua, slug, url) {
 
   let linkData;
   try {
-    linkData = await lookup(slug, true);
+    linkData = await lookup(slug);
     if (linkData === null) {
       console.log("Slug not found, skipping logging");
       return;
@@ -163,24 +183,37 @@ async function logAccess(ip, ua, slug, url) {
     client_ip: ip,
     user_agent: ua,
     bot: isBot(ua) || botUA.includes(ua),
-    slug: linkData.id,
+    link_id: linkData.id,
     url: url,
   };
 
   client.query(
-    `INSERT INTO logs (timestamp, client_ip, user_agent, bot, slug, url)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [
-      data.timestamp,
-      data.client_ip,
-      data.user_agent,
-      data.bot,
-      data.slug,
-      data.url,
-    ],
-    (err, _res) => {
+    `INSERT INTO logs (timestamp, client_ip, user_agent, bot)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [data.timestamp, data.client_ip, data.user_agent, data.bot],
+    (err, res) => {
       if (err) {
         console.error(err);
+      } else {
+        client.query(
+          `INSERT INTO link_logs (link_id, log_id) VALUES ($1, $2)`,
+          [data.link_id, res.rows[0].id],
+          (err, _res) => {
+            if (err) {
+              console.error(err);
+            }
+          }
+        );
+
+        client.query(
+          `INSERT INTO visitor_ips (link_id, ip) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [data.slug, data.client_ip],
+          (err, _res) => {
+            if (err) {
+              console.error(err);
+            }
+          }
+        );        
       }
     }
   );
@@ -219,8 +252,6 @@ const isStaffMember = async (userId) => {
     return false;
   }
 };
-
-
 
 (async () => {
   await SlackApp.start();
