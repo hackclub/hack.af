@@ -3,6 +3,8 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var isBot = require("isbot");
 var querystring = require("querystring");
+var responseTime = require("response-time");
+var metrics = require("./metrics.js")
 
 var app = express();
 
@@ -20,6 +22,17 @@ app.listen(port, () => {
 });
 
 require("dotenv").config();
+
+app.use(responseTime(function (req, res, time) {
+  const stat = (req.method + req.url.split('?')[0]).toLowerCase()
+    .replace(/[:.]/g, '')
+    .replace(/\//g, '_')
+  const httpCode = res.statusCode
+  const timingStatKey = `http.response.${stat}`
+  const codeStatKey = `http.response.${stat}.${httpCode}`
+  metrics.timing(timingStatKey, time)
+  metrics.increment(codeStatKey, 1)
+}))
 
 // all components originally written as API has been removed for this distribution
 // if API access is needed, please invent your own wheel with AirTable API
@@ -115,10 +128,12 @@ var lookup = (slug, idOnly) => {
 
     if (cache[slug] && timeNow < cache[slug].expires) {
       // valid cache
+      metrics.increment("lookup.cache.hit", 1);
       console.log("Yeet. Cache has what I needed.");
       console.log(cache[slug]);
       resolve(idOnly ? cache[slug].id : cache[slug].dest);
     } else {
+      metrics.increment("lookup.cache.miss", 1);
       console.log("Oops. Can't find useful data in cache. Asking Airtable.");
       base("Links")
         .select({
