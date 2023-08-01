@@ -11,9 +11,7 @@
     "express": "^4.17.3",
     "http-auth": "^3.2.3",
     "isbot": "^2.4.0",
-    "node-statsd": "^0.1.1",
-    "randomstring": "^1.1.5",
-    "response-time": "^2.3.2"
+    "randomstring": "^1.1.5"
   },
   "scripts": {
     "start": "node app.js",
