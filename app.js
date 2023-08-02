@@ -8,7 +8,6 @@ import dotenv from "dotenv";
 import bolt from "@slack/bolt";
 const { App, LogLevel } = bolt;
 
-
 dotenv.config();
 
 const SlackApp = new App({
@@ -21,6 +20,9 @@ const SlackApp = new App({
 const connectionString = process.env.DATABASE_URL;
 const client = new Client({
   connectionString,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 client.connect();
@@ -38,10 +40,10 @@ app.listen(port, () => {
 
 SlackApp.command("/hack.af", async ({ command, ack, say }) => {
   await ack();
-
   const originalUrl = command.text.split(' ')[0];
   let slug = Math.random().toString(36).substring(7);
   const customSlug = command.text.split(' ')[1];
+  const recordId = Math.random().toString(36).substring(2, 15);
 
   const isStaff = await isStaffMember(command.user_id);
   if (isStaff && customSlug) {
@@ -49,11 +51,11 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
   }
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-  await client.query(
-    "INSERT INTO links (slug, destination, qr_link) VALUES ($1, $2, $3)",
-    [slug, originalUrl, qrUrl]
+  await client.query(`
+  INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']
   );
-
   await say({
     blocks: [
       {
@@ -101,7 +103,7 @@ app.get("/gib/:org", (req, res) => {
 });
 
 app.get("/*", (req, res) => {
-  const slug = req.path.substring(1);
+  let slug = req.path.substring(1);
   const query = req.query;
 
   if (slug.endsWith("/")) {
@@ -149,15 +151,16 @@ function combineQueries(q1, q2) {
 }
 
 const lookup = async (slug) => {
-  const res = await client.query(
-    "SELECT id, destination FROM links WHERE slug = $1",
-    [slug]
-  );
+  try {
+    const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug])
 
-  if (res.rows.length > 0) {
-    return res.rows[0];
-  } else {
-    throw new Error('Slug not found');
+    if (res.rows.length > 0) {
+      return res.rows[0];
+    } else {
+      throw new Error('Slug not found');
+    }
+  } catch (error) {
+    throw error;
   }
 };
 
@@ -178,42 +181,32 @@ async function logAccess(ip, ua, slug, url) {
     console.log(e);
   }
 
+  const recordId = Math.random().toString(36).substring(2, 15);
+  const timestamp = new Date().toISOString();
+  const descriptiveTimestamp = new Date();
+
   const data = {
-    timestamp: new Date(),
+    record_id: recordId,
+    timestamp: timestamp,
+    descriptive_timestamp: descriptiveTimestamp,
     client_ip: ip,
+    slug: slug,
+    url: url,
     user_agent: ua,
     bot: isBot(ua) || botUA.includes(ua),
-    link_id: linkData.id,
-    url: url,
+    counter: 1
   };
 
   client.query(
-    `INSERT INTO logs (timestamp, client_ip, user_agent, bot)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [data.timestamp, data.client_ip, data.user_agent, data.bot],
-    (err, res) => {
+    `INSERT INTO "Log" ("Record Id", "Timestamp", "Descriptive Timestamp", "Client IP", "Slug", "URL", "User Agent", "Counter")
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [data.record_id, data.timestamp, data.descriptive_timestamp, data.client_ip, data.slug, data.url, data.user_agent, data.counter],
+    (err, _res) => {
       if (err) {
         console.error(err);
       } else {
-        client.query(
-          `INSERT INTO link_logs (link_id, log_id) VALUES ($1, $2)`,
-          [data.link_id, res.rows[0].id],
-          (err, _res) => {
-            if (err) {
-              console.error(err);
-            }
-          }
-        );
-
-        client.query(
-          `INSERT INTO visitor_ips (link_id, ip) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-          [data.slug, data.client_ip],
-          (err, _res) => {
-            if (err) {
-              console.error(err);
-            }
-          }
-        );        
+        console.log("Logged access:", data);
+        client.query(`UPDATE "Links" SET "Clicks" = "Clicks" + 1, "Log" = array_append("Log", $1), "Visitor IPs" = array_append("Visitor IPs", $2) WHERE "slug" = $3`, [data.record_id, data.client_ip, data.slug]);
       }
     }
   );
