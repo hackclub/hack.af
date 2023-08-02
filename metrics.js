@@ -1,4 +1,6 @@
-var StatsD = require('node-statsd')
+import StatsD from 'node-statsd';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const environment = process.env.NODE_ENV
 const graphite = process.env.GRAPHITE_HOST
@@ -15,4 +17,4 @@ const options = {
 
 const metrics = new StatsD(options)
 
-module.exports = metrics;
+export default metrics;

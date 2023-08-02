@@ -7,8 +7,8 @@ import querystring from "querystring";
 import dotenv from "dotenv";
 import bolt from "@slack/bolt";
 const { App, LogLevel } = bolt;
-var responseTime = require("response-time");
-var metrics = require("./metrics.js")
+import responseTime from "response-time";
+import metrics from './metrics.js';
 
 dotenv.config();
 
