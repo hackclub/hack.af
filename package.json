@@ -12,6 +12,8 @@
     "express": "^4.17.1",
     "isbot": "^2.4.0",
     "pg": "^8.11.0"
+    "node-statsd": "^0.1.1",
+    "response-time": "^2.3.2"
   },
   "scripts": {
     "start": "node app.js",

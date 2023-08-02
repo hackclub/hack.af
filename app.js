@@ -7,6 +7,8 @@ import querystring from "querystring";
 import dotenv from "dotenv";
 import bolt from "@slack/bolt";
 const { App, LogLevel } = bolt;
+var responseTime = require("response-time");
+var metrics = require("./metrics.js")
 
 dotenv.config();
 
@@ -38,12 +40,34 @@ app.listen(port, () => {
   console.log("Hack.af is up and running on port", port);
 });
 
+app.use(responseTime(function (req, res, time) {
+  const stat = (req.method + "-" + req.url.split('?')[0].split('/')[1]).toLowerCase()
+    .replace(/[:.]/g, '')
+    .replace(/\//g, '_')
+  const httpCode = res.statusCode
+  const timingStatKey = `http.response.${stat}`
+  const codeStatKey = `http.response.${stat}.${httpCode}`
+  metrics.timing(timingStatKey, time)
+  metrics.increment(codeStatKey, 1)
+}))
+
 SlackApp.command("/hack.af", async ({ command, ack, say }) => {
   await ack();
   const originalUrl = command.text.split(' ')[0];
   let slug = Math.random().toString(36).substring(7);
   const customSlug = command.text.split(' ')[1];
   const recordId = Math.random().toString(36).substring(2, 15);
+
+app.use(responseTime(function (req, res, time) {
+  const stat = (req.method + "-" + req.url.split('?')[0].split('/')[1]).toLowerCase()
+    .replace(/[:.]/g, '')
+    .replace(/\//g, '_')
+  const httpCode = res.statusCode
+  const timingStatKey = `http.response.${stat}`
+  const codeStatKey = `http.response.${stat}.${httpCode}`
+  metrics.timing(timingStatKey, time)
+  metrics.increment(codeStatKey, 1)
+}))
 
   const isStaff = await isStaffMember(command.user_id);
   if (isStaff && customSlug) {
@@ -153,11 +177,47 @@ function combineQueries(q1, q2) {
 const lookup = async (slug) => {
   try {
     const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug])
-
-    if (res.rows.length > 0) {
-      return res.rows[0];
+    if (cache[slug] && timeNow < cache[slug].expires) {
+      // valid cache
+      metrics.increment("lookup.cache.hit", 1);
+      console.log("Yeet. Cache has what I needed.");
+      console.log(cache[slug]);
+      resolve(idOnly ? cache[slug].id : cache[slug].dest);
     } else {
-      throw new Error('Slug not found');
+      metrics.increment("lookup.cache.miss", 1);
+      console.log("Oops. Can't find useful data in cache. Asking Airtable.");
+      base("Links")
+        .select({
+          filterByFormula: '{slug} = "' + slug + '"',
+        })
+        .eachPage(
+          function page(records, fetchNextPage) {
+            if (records.length > 0) {
+              records.forEach(function (record) {
+                cache[slug] = {
+                  id: record.getId(),
+                  dest: record.get("destination"),
+                  expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
+                };
+
+                if (idOnly) resolve(record.getId());
+                else resolve(record.get("destination"));
+              });
+            } else {
+              fetchNextPage();
+            }
+          },
+          function done(err) {
+            if (err) {
+              // api jam
+              console.error(err);
+              reject(500);
+            } else {
+              // all records scanned - no match
+              reject(404);
+            }
+          }
+        );
     }
   } catch (error) {
     throw error;
