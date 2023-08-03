@@ -5,14 +5,15 @@
   "repository": "https://github.com/hackclub/hack.af",
   "author": "Mingjie Jiang<jiang@mingjie.info>",
   "license": "MIT",
+  "type": "module",
   "dependencies": {
-    "airtable": "^0.7.2",
-    "dotenv": "^8.1.0",
-    "express": "^4.17.3",
-    "http-auth": "^3.2.3",
+    "@slack/bolt": "^3.13.1",
+    "dotenv": "^8.6.0",
+    "express": "^4.17.1",
     "isbot": "^2.4.0",
+    "lru-cache": "^10.0.0",
     "node-statsd": "^0.1.1",
-    "randomstring": "^1.1.5",
+    "pg": "^8.11.0",
     "response-time": "^2.3.2"
   },
   "scripts": {
