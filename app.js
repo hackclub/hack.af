@@ -105,6 +105,16 @@ app.use(responseTime(function (req, res, time) {
   });
 });
 
+app.post('/invalidate/:slug', (req, res) => {
+  const slug = req.params.slug;
+  if (cache.has(slug)) {
+    cache.del(slug);
+    res.json({ success: true, message: `Invalidated ${slug} in cache` });
+  } else {
+    res.json({ success: false, message: `No entry with ${slug} in cache` });
+  }
+});
+
 app.get("/ping", (_req, res) => {
   res.send("pong");
 });
