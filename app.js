@@ -9,9 +9,11 @@ import bolt from "@slack/bolt";
 const { App, LogLevel } = bolt;
 import responseTime from "response-time";
 import metrics from './metrics.js';
+import { LRUCache } from 'lru-cache';
 
 dotenv.config();
-var cache = {};
+
+const cache = new LRUCache({ max: parseInt(process.env.CACHE_SIZE) });
 
 const SlackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -177,27 +179,21 @@ function combineQueries(q1, q2) {
 
 const lookup = async (slug) => {
   try {
-    const timeNow = Date.now();
-
-    if (cache[slug] && timeNow < cache[slug].expires) {
-
+    if (cache.has(slug)) {
       metrics.increment("lookup.cache.hit", 1);
-      console.log("Yeet. Cache has what I needed.");
-      console.log(cache[slug]);
-      return cache[slug];
+      console.log("Cache has what I needed.");
+      console.log(cache.get(slug));
+      return cache.get(slug);
     } else {
       metrics.increment("lookup.cache.miss", 1);
-      console.log("Oops. Can't find useful data in cache. Asking PostgreSQL.");
+      console.log("Can't find useful data in cache. Asking PostgreSQL.");
       const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
 
       if (res.rows.length > 0) {
         const record = res.rows[0];
-        cache[slug] = {
-          ...record,
-          expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
-        };
+        cache.set(slug, record);
 
-        return cache[slug];
+        return cache.get(slug);
       } else {
         console.log(`No match found for slug: ${slug}`);
         throw new Error('Slug not found');
