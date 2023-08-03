@@ -11,6 +11,7 @@ import responseTime from "response-time";
 import metrics from './metrics.js';
 
 dotenv.config();
+var cache = {};
 
 const SlackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -176,50 +177,34 @@ function combineQueries(q1, q2) {
 
 const lookup = async (slug) => {
   try {
-    const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug])
+    const timeNow = Date.now();
+
     if (cache[slug] && timeNow < cache[slug].expires) {
-      // valid cache
+
       metrics.increment("lookup.cache.hit", 1);
       console.log("Yeet. Cache has what I needed.");
       console.log(cache[slug]);
-      resolve(idOnly ? cache[slug].id : cache[slug].dest);
+      return cache[slug];
     } else {
       metrics.increment("lookup.cache.miss", 1);
-      console.log("Oops. Can't find useful data in cache. Asking Airtable.");
-      base("Links")
-        .select({
-          filterByFormula: '{slug} = "' + slug + '"',
-        })
-        .eachPage(
-          function page(records, fetchNextPage) {
-            if (records.length > 0) {
-              records.forEach(function (record) {
-                cache[slug] = {
-                  id: record.getId(),
-                  dest: record.get("destination"),
-                  expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
-                };
+      console.log("Oops. Can't find useful data in cache. Asking PostgreSQL.");
+      const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
 
-                if (idOnly) resolve(record.getId());
-                else resolve(record.get("destination"));
-              });
-            } else {
-              fetchNextPage();
-            }
-          },
-          function done(err) {
-            if (err) {
-              // api jam
-              console.error(err);
-              reject(500);
-            } else {
-              // all records scanned - no match
-              reject(404);
-            }
-          }
-        );
+      if (res.rows.length > 0) {
+        const record = res.rows[0];
+        cache[slug] = {
+          ...record,
+          expires: timeNow + parseInt(process.env.CACHE_EXPIRATION),
+        };
+
+        return cache[slug];
+      } else {
+        console.log(`No match found for slug: ${slug}`);
+        throw new Error('Slug not found');
+      }
     }
   } catch (error) {
+    console.error(error);
     throw error;
   }
 };
@@ -265,7 +250,6 @@ async function logAccess(ip, ua, slug, url) {
       if (err) {
         console.error(err);
       } else {
-        console.log("Logged access:", data);
         client.query(`UPDATE "Links" SET "Clicks" = "Clicks" + 1, "Log" = array_append("Log", $1), "Visitor IPs" = array_append("Visitor IPs", $2) WHERE "slug" = $3`, [data.record_id, data.client_ip, data.slug]);
       }
     }
