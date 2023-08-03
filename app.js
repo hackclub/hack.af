@@ -283,17 +283,24 @@ function forceHttps(req, res, next) {
 }
 
 const isStaffMember = async (userId) => {
-  const params = {
-    usergroup: 'S0DJXPY14'
-  };
+  const usergroups = ['S0DJXPY14', 'S01E4DN8S0Y'];
 
-  try {
-    const result = await SlackApp.client.usergroups.users.list(params);
-    return result.users.includes(userId);
-  } catch (error) {
-    console.error(error);
-    return false;
+  for (let i = 0; i < usergroups.length; i++) {
+    const params = {
+      usergroup: usergroups[i]
+    };
+
+    try {
+      const result = await SlackApp.client.usergroups.users.list(params);
+      if (result.users.includes(userId)) {
+        return true;
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
+
+  return false;
 };
 
 (async () => {
