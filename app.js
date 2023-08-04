@@ -264,18 +264,23 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
+      console.log("Destination : " + destination)
         var fullUrl = decodeURIComponent(destination.destination);
+        console.log("Full URL : " + fullUrl);
         if (!/^https?:\/\//i.test(fullUrl)) {
             fullUrl = 'http://' + fullUrl;
         }
         const parsedDestination = new URL(fullUrl);
+        console.log("Parsed Destination : " + parsedDestination);
         var resultQuery = combineQueries(
             querystring.parse(parsedDestination.search),
             query
         );
         // prepend a '?' if resultQuery is not empty
         resultQuery = resultQuery ? '?' + resultQuery : resultQuery;
+        console.log("Result Query : " + resultQuery);
         const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
+        console.log("Final URL : " + finalURL);
         res.redirect(307, finalURL)
     },
     (_err) => {
