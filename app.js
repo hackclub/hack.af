@@ -417,24 +417,17 @@ function forceHttps(req, res, next) {
 }
 
 const isStaffMember = async (userId) => {
-  const usergroups = ['S0DJXPY14', 'S01E4DN8S0Y'];
-
-  for (let i = 0; i < usergroups.length; i++) {
-    const params = {
-      usergroup: usergroups[i]
-    };
-
-    try {
-      const result = await SlackApp.client.usergroups.users.list(params);
-      if (result.users.includes(userId)) {
-        return true;
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  return false;
+  const allowedUsers = new Set([ 
+    'U04QH1TTMBP', //graham
+    'U0C7B14Q3',   //max
+    'U0266FRGP',   //zrl
+    'U032A2PMSE9', //kara
+    'USNPNJXNX',   //sam
+    'U022XFD2TML', //ian
+    'U013B6CPV62', //caleb
+    'U014E8132DB'  //shubham
+ ]);
+ return allowedUsers.has(userId)
 };
 
 (async () => {
