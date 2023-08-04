@@ -264,32 +264,30 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
-      console.log("Destination : " + destination)
-        var fullUrl = decodeURIComponent(destination.destination);
-        console.log("Full URL : " + fullUrl);
-        if (!/^https?:\/\//i.test(fullUrl)) {
-            fullUrl = 'http://' + fullUrl;
-        }
-        const parsedDestination = new URL(fullUrl);
-        console.log("Parsed Destination : " + parsedDestination);
-        var resultQuery = combineQueries(
-            querystring.parse(parsedDestination.search),
-            query
-        );
-        // prepend a '?' if resultQuery is not empty
-        resultQuery = resultQuery ? '?' + resultQuery : resultQuery;
-        console.log("Result Query : " + resultQuery);
-        const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
-        console.log("Final URL : " + finalURL);
-        res.redirect(307, finalURL)
+      var fullUrl = decodeURIComponent(destination.destination);
+      if (!/^https?:\/\//i.test(fullUrl)) {
+        fullUrl = 'http://' + fullUrl;
+      }
+      var resultQuery = combineQueries(
+        querystring.parse(new URL(fullUrl).search),
+        query
+      );
+      const parsedDestination = new URL(fullUrl);
+      const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
+      console.log(`Destination : ${destination}`);
+      console.log(`Full URL : ${fullUrl}`);
+      console.log(`Parsed Destination : ${parsedDestination}`);
+      console.log(`Result Query : ${resultQuery}`);
+      console.log(`Final URL : ${finalURL}`);
+      res.redirect(307, finalURL)
     },
     (_err) => {
-        res.redirect(302, "https://hackclub.com/404");
+      res.redirect(302, "https://hackclub.com/404");
     }
-).catch((_err) => {
+  ).catch((_err) => {
     res.redirect(302, "https://goo.gl/" + slug);
-});
-});
+  });
+  });  
 
 function combineQueries(q1, q2) {
   const combinedQuery = { ...q1, ...q2 };
