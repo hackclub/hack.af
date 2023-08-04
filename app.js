@@ -62,7 +62,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
   if (isStaff && args[0].toLowerCase() === 'change' && args.length === 3) {
     const slug = args[1];
-    const newDestination = args[2];
+    const newDestination = encodeURIComponent(args[2]);
     if (cache.has(slug)) {
       cache.del(slug);
     }
@@ -74,13 +74,13 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
       `, [newDestination, slug]);
 
       await say({
-        text: `URL for slug ${slug} successfully changed to ${newDestination}.`,
+        text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
         blocks: [
           {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `URL for slug *${slug}* successfully changed to *${newDestination}*.`
+              text: `URL for slug *${slug}* successfully changed to *${decodeURIComponent(newDestination)}*.`
             }
           },
           {
@@ -113,7 +113,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
       if (isURL) {
         query = `SELECT * FROM "Links" WHERE destination = $1`;
-        queryParams = [searchTerm];
+        queryParams = [encodeURIComponent(searchTerm)];
       } else {
         query = `SELECT * FROM "Links" WHERE slug = $1`;
         queryParams = [searchTerm];
@@ -134,7 +134,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
               },
               {
                 type: 'mrkdwn',
-                text: `*Destination:* <${record.destination}|${record.destination}>`
+                text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`
               }
             ]
           };
@@ -144,6 +144,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
           blocks
         });
       } else {
+        if (isURL) searchTerm = decodeURIComponent(searchTerm);
         await say({
           text: `No matches found for ${searchTerm}.`
         });
