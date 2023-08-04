@@ -56,62 +56,167 @@ app.use(responseTime(function (req, res, time) {
 
 SlackApp.command("/hack.af", async ({ command, ack, say }) => {
   await ack();
-  const originalUrl = command.text.split(' ')[0];
+
+  const args = command.text.split(' ');
+  const isStaff = await isStaffMember(command.user_id);
+
+  if (isStaff && args[0].toLowerCase() === 'change' && args.length === 3) {
+    const slug = args[1];
+    const newDestination = args[2];
+    if (cache.has(slug)) {
+      cache.del(slug);
+    }
+    try {
+      await client.query(`
+        UPDATE "Links"
+        SET destination = $1
+        WHERE slug = $2
+      `, [newDestination, slug]);
+
+      await say({
+        text: `URL for slug ${slug} successfully changed to ${newDestination}.`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `URL for slug *${slug}* successfully changed to *${newDestination}*.`
+            }
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Request made by <@${command.user_id}>`
+              }
+            ]
+          }
+        ]
+      });
+    } catch (error) {
+      await say({
+        text: 'There was an error processing your request. The slug may not exist.'
+      });
+      console.error(error);
+    }
+    return;
+  }
+  else if (isStaff && args[0].toLowerCase() === 'search' && args.length === 2) {
+
+    const searchTerm = args[1];
+    const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
+
+    try {
+      let query = "";
+      let queryParams = [];
+
+      if (isURL) {
+        query = `SELECT * FROM "Links" WHERE destination = $1`;
+        queryParams = [searchTerm];
+      } else {
+        query = `SELECT * FROM "Links" WHERE slug = $1`;
+        queryParams = [searchTerm];
+      }
+
+      const res = await client.query(query, queryParams);
+      const records = res.rows;
+
+
+      if (records.length > 0) {
+        const blocks = records.map(record => {
+          return {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Slug:* ${record.slug}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Destination:* <${record.destination}|${record.destination}>`
+              }
+            ]
+          };
+        });
+
+        await say({
+          blocks
+        });
+      } else {
+        await say({
+          text: `No matches found for ${searchTerm}.`
+        });
+      }
+    } catch (error) {
+      await say({
+        text: 'There was an error processing your request. Please try again.'
+      });
+      console.error(error);
+    }
+    return;
+  }
+
+  const originalUrl = args[0];
   let slug = Math.random().toString(36).substring(7);
-  const customSlug = command.text.split(' ')[1];
+  const customSlug = args[1];
   const recordId = Math.random().toString(36).substring(2, 15);
 
-app.use(responseTime(function (req, res, time) {
-  const stat = (req.method + "-" + req.url.split('?')[0].split('/')[1]).toLowerCase()
-    .replace(/[:.]/g, '')
-    .replace(/\//g, '_')
-  const httpCode = res.statusCode
-  const timingStatKey = `http.response.${stat}`
-  const codeStatKey = `http.response.${stat}.${httpCode}`
-  metrics.timing(timingStatKey, time)
-  metrics.increment(codeStatKey, 1)
-}))
-
-  const isStaff = await isStaffMember(command.user_id);
   if (isStaff && customSlug) {
     slug = customSlug;
   }
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-  await client.query(`
-  INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-`, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']
-  );
-  await say({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `Your short URL: https://hack.af/${slug}`
-        },
-      },
-      {
-        type: 'image',
-        title: {
-          type: 'plain_text',
-          text: 'QR Code'
-        },
-        image_url: qrUrl,
-        alt_text: 'QR Code for your URL'
-      }
-    ]
-  });
-});
 
-app.post('/invalidate/:slug', (req, res) => {
-  const slug = req.params.slug;
-  if (cache.has(slug)) {
-    cache.del(slug);
-    res.json({ success: true, message: `Invalidated ${slug} in cache` });
-  } else {
-    res.json({ success: false, message: `No entry with ${slug} in cache` });
+  try {
+    await client.query(`
+      INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']);
+
+    let msg = `Your short URL: https://hack.af/${slug}`;
+    let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>*`;
+
+    if (isStaff) {
+      msg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
+      blockMsg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
+    }
+
+    await say({
+      text: msg,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: blockMsg,
+          }
+        },
+        {
+          type: 'image',
+          title: {
+            type: 'plain_text',
+            text: 'QR Code'
+          },
+          image_url: qrUrl,
+          alt_text: 'QR Code for your URL'
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: `Request made by <@${command.user_id}>`
+            }
+          ]
+        }
+      ]
+    });
+  } catch (error) {
+    await say({
+      text: 'There was an error processing your request. Please check the format of your command and try again.'
+    });
+    console.error(error);
   }
 });
 
