@@ -293,6 +293,7 @@ app.get("/*", (req, res) => {
   ).catch((_err) => {
     res.redirect(302, "https://goo.gl/" + slug);
   });
+});
   
 
 function combineQueries(q1, q2) {
