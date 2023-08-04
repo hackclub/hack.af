@@ -158,7 +158,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
     return;
   }
 
-  const originalUrl = args[0];
+  const originalUrl = encodeURIComponent(args[0]);
   let slug = Math.random().toString(36).substring(7);
   const customSlug = args[1];
   const recordId = Math.random().toString(36).substring(2, 15);
@@ -246,7 +246,7 @@ app.get("/gib/:org", (req, res) => {
 });
 
 app.get("/*", (req, res) => {
-  let slug = req.path.substring(1);
+  let slug = decodeURIComponent(req.path.substring(1));
   const query = req.query;
 
   if (slug.endsWith("/")) {
