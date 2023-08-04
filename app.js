@@ -264,24 +264,25 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
-      var fullUrl = decodeURIComponent(destination.destination);
-      if (!/^https?:\/\//i.test(fullUrl)) {
-        fullUrl = 'http://' + fullUrl;
-      }
-      var resultQuery = combineQueries(
-        querystring.parse(new URL(fullUrl).search),
-        query
-      );
-      const parsedDestination = new URL(fullUrl);
-      const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
-      res.redirect(307, finalURL)
+        var fullUrl = decodeURIComponent(destination.destination);
+        if (!/^https?:\/\//i.test(fullUrl)) {
+            fullUrl = 'http://' + fullUrl;
+        }
+        const parsedDestination = new URL(fullUrl);
+        var resultQuery = combineQueries(
+            querystring.parse(parsedDestination.search),
+            query
+        );
+        // prepend a '?' if resultQuery is not empty
+        resultQuery = resultQuery ? '?' + resultQuery : resultQuery;
+        const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
+        res.redirect(307, finalURL)
     },
     (_err) => {
-      res.redirect(302, "https://hackclub.com/404");
+        res.redirect(302, "https://hackclub.com/404");
     }
-  ).catch((_err) => {
+).catch((_err) => {
     res.redirect(302, "https://goo.gl/" + slug);
-  });
 });
 
 function combineQueries(q1, q2) {
