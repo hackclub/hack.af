@@ -264,22 +264,28 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
-      var fullUrl = decodeURIComponent(destination.destination);
+      var fullUrl = destination.destination;
       if (!/^https?:\/\//i.test(fullUrl)) {
         fullUrl = 'http://' + fullUrl;
       }
+  
+      fullUrl = decodeURIComponent(fullUrl);
+      
       var resultQuery = combineQueries(
         querystring.parse(new URL(fullUrl).search),
         query
       );
+  
       const parsedDestination = new URL(fullUrl);
-      const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash
-      console.log(`Destination : ${destination}`);
-      console.log(`Full URL : ${fullUrl}`);
-      console.log(`Parsed Destination : ${parsedDestination}`);
-      console.log(`Result Query : ${resultQuery}`);
-      console.log(`Final URL : ${finalURL}`);
-      res.redirect(307, finalURL)
+      const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash;
+      
+      console.log("Destination: ", destination);
+      console.log("Full URL: ", fullUrl);
+      console.log("Parsed Destination: ", parsedDestination.href);
+      console.log("Result Query: ", resultQuery);
+      console.log("Final URL: ", finalURL);
+  
+      res.redirect(307, finalURL);
     },
     (_err) => {
       res.redirect(302, "https://hackclub.com/404");
@@ -287,16 +293,34 @@ app.get("/*", (req, res) => {
   ).catch((_err) => {
     res.redirect(302, "https://goo.gl/" + slug);
   });
-  });  
+  
 
 function combineQueries(q1, q2) {
+
+  for (let key in q1) {
+    if (key[0] === "?") {
+      q1[key.substring(1)] = q1[key];
+      delete q1[key];
+    }
+  }
+
+  for (let key in q2) {
+    if (key[0] === "?") {
+      q2[key.substring(1)] = q2[key];
+      delete q2[key];
+    }
+  }
+
   const combinedQuery = { ...q1, ...q2 };
   let combinedQueryString = querystring.stringify(combinedQuery);
+  
   if (combinedQueryString) {
     combinedQueryString = "?" + combinedQueryString;
   }
+
   return combinedQueryString;
 }
+
 
 const lookup = async (slug) => {
   try {
