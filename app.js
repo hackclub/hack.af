@@ -62,7 +62,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
   if (isStaff && args[0].toLowerCase() === 'change' && args.length === 3) {
     const slug = args[1];
-    const newDestination = encodeURIComponent(args[2]);
+    const newDestination = args[2];
     if (cache.has(slug)) {
       cache.del(slug);
     }
