@@ -264,12 +264,10 @@ app.get("/*", (req, res) => {
 
   lookup(decodeURI(slug)).then(
     (destination) => {
-      var fullUrl = destination.destination;
+      var fullUrl = decodeURIComponent(destination.destination);
       if (!/^https?:\/\//i.test(fullUrl)) {
         fullUrl = 'http://' + fullUrl;
       }
-  
-      fullUrl = decodeURIComponent(fullUrl);
       
       var resultQuery = combineQueries(
         querystring.parse(new URL(fullUrl).search),
