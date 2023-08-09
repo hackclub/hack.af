@@ -426,7 +426,7 @@ const isStaffMember = async (userId) => {
     'U022XFD2TML', //ian
     'U013B6CPV62', //caleb
     'U014E8132DB',  //shubham panth
-    'U03DFNYGPCN' //MR. MALTED WHEATIES ESQ.
+    'U03DFNYGPCN', //MR. MALTED WHEATIES ESQ.
     'U02CWS020SD', // ALEX AKA ICE SPICE 2
     'U02UYFZQ0G0', // cheru :O
     'U041FQB8VK2' // thomas
