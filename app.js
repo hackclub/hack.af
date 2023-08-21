@@ -64,7 +64,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
     const slug = args[1];
     const newDestination = args[2];
     if (cache.has(slug)) {
-      cache.del(slug);
+      cache.delete(slug);
     }
     try {
       await client.query(`
