@@ -54,7 +54,7 @@ app.use(responseTime(function (req, res, time) {
   metrics.increment(codeStatKey, 1)
 }))
 
-SlackApp.command("/hack.af-cheru", async ({ command, ack, say }) => {
+SlackApp.command("/hack.af", async ({ command, ack, say }) => {
   async function changeSlug(slug, newDestination) {
     try {
       if (cache.has(slug)) {
