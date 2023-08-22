@@ -19,7 +19,7 @@ const SlackApp = new App({
   token: process.env.SLACK_BOT_TOKEN,
   appToken: process.env.SLACK_APP_TOKEN,
   socketMode: true,
-  logLevel: LogLevel.ERROR,
+  logLevel: LogLevel.DEBUG,
 });
 
 const connectionString = process.env.DATABASE_URL;
