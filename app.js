@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 import bolt from "@slack/bolt";
 const { App, LogLevel } = bolt;
 import responseTime from "response-time";
-// import metrics from './metrics.js';
+import metrics from './metrics.js';
 import { LRUCache } from 'lru-cache';
 
 dotenv.config();
@@ -50,8 +50,8 @@ app.use(responseTime(function (req, res, time) {
   const httpCode = res.statusCode
   const timingStatKey = `http.response.${stat}`
   const codeStatKey = `http.response.${stat}.${httpCode}`
-  //metrics.timing(timingStatKey, time)
-  //metrics.increment(codeStatKey, 1)
+  metrics.timing(timingStatKey, time)
+  metrics.increment(codeStatKey, 1)
 }))
 
 SlackApp.command("/hack.af-cheru", async ({ command, ack, say }) => {
@@ -442,12 +442,12 @@ function combineQueries(q1, q2) {
 const lookup = async (slug) => {
   try {
     if (cache.has(slug)) {
-      //metrics.increment("lookup.cache.hit", 1);
+      metrics.increment("lookup.cache.hit", 1);
       console.log("Cache has what I needed.");
       console.log(cache.get(slug));
       return cache.get(slug);
     } else {
-      //metrics.increment("lookup.cache.miss", 1);
+      metrics.increment("lookup.cache.miss", 1);
       console.log("Can't find useful data in cache. Asking PostgreSQL.");
       const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
 
