@@ -60,12 +60,18 @@ SlackApp.command("/hack.af-cheru", async ({ command, ack, say }) => {
       if (cache.has(slug)) {
         cache.delete(slug);
       }
-      // TODO: upsert
+
+      // if record doesn't already exist
+      const recordId = Math.random().toString(36).substring(2, 15);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
+
       await client.query(`
-        UPDATE "Links"
-        SET destination = $1
-        WHERE slug = $2
-      `, [newDestination, slug]);
+        WITH updated AS (
+            UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
+        )
+        INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+        SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
+      `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
 
       await say({
         text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
@@ -90,7 +96,7 @@ SlackApp.command("/hack.af-cheru", async ({ command, ack, say }) => {
       });
     } catch (error) {
       await say({
-        text: 'There was an error processing your request. The slug may not exist.'
+        text: 'There was an error processing your request.'
       });
       console.error(error);
     }
