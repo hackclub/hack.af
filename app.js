@@ -55,23 +55,23 @@ app.use(responseTime(function (req, res, time) {
 }))
 
 SlackApp.command("/hack.af", async ({ command, ack, say }) => {
-  await ack();
-
-  const args = command.text.split(' ');
-  const isStaff = await isStaffMember(command.user_id);
-
-  if (isStaff && args[0].toLowerCase() === 'change' && args.length === 3) {
-    const slug = args[1];
-    const newDestination = args[2];
-    if (cache.has(slug)) {
-      cache.delete(slug);
-    }
+  async function changeSlug(slug, newDestination) {
     try {
+      if (cache.has(slug)) {
+        cache.delete(slug);
+      }
+
+      // if record doesn't already exist
+      const recordId = Math.random().toString(36).substring(2, 15);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
+
       await client.query(`
-        UPDATE "Links"
-        SET destination = $1
-        WHERE slug = $2
-      `, [newDestination, slug]);
+        WITH updated AS (
+            UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
+        )
+        INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+        SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
+      `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
 
       await say({
         text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
@@ -96,15 +96,14 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
       });
     } catch (error) {
       await say({
-        text: 'There was an error processing your request. The slug may not exist.'
+        text: 'There was an error processing your request.'
       });
       console.error(error);
     }
-    return;
   }
-  else if (isStaff && args[0].toLowerCase() === 'search' && args.length === 2) {
 
-    const searchTerm = args[1];
+  async function searchSlug(searchTerm) {
+
     const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
 
     try {
@@ -155,69 +154,188 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
       });
       console.error(error);
     }
-    return;
   }
 
-  const originalUrl = encodeURIComponent(args[0]);
-  let slug = Math.random().toString(36).substring(7);
-  const customSlug = args[1];
-  const recordId = Math.random().toString(36).substring(2, 15);
+  async function shortenUrl(url) {
+    const originalUrl = encodeURIComponent(url);
+    let slug = Math.random().toString(36).substring(7);
+    const recordId = Math.random().toString(36).substring(2, 15);
 
-  if (isStaff && customSlug) {
-    slug = customSlug;
-  }
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-
-  try {
-    await client.query(`
+    try {
+      await client.query(`
       INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']);
 
-    let msg = `Your short URL: https://hack.af/${slug}`;
-    let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>*`;
+      let msg = `Your short URL: https://hack.af/${slug}`;
+      let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>*`;
 
-    if (isStaff) {
-      msg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
-      blockMsg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
-    }
+      if (isStaff) {
+        msg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
+        blockMsg += '\nTo change the destination URL, use `/hack.af change [slug] [new destination URL]`.';
+      }
 
-    await say({
-      text: msg,
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: blockMsg,
-          }
-        },
-        {
-          type: 'image',
-          title: {
-            type: 'plain_text',
-            text: 'QR Code'
-          },
-          image_url: qrUrl,
-          alt_text: 'QR Code for your URL'
-        },
-        {
-          type: 'context',
-          elements: [
-            {
+      await say({
+        text: msg,
+        blocks: [
+          {
+            type: 'section',
+            text: {
               type: 'mrkdwn',
-              text: `Request made by <@${command.user_id}>`
+              text: blockMsg,
             }
+          },
+          {
+            type: 'image',
+            title: {
+              type: 'plain_text',
+              text: 'QR Code'
+            },
+            image_url: qrUrl,
+            alt_text: 'QR Code for your URL'
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Request made by <@${command.user_id}>`
+              }
+            ]
+          }
+        ]
+      });
+    } catch (error) {
+      await say({
+        text: 'There was an error processing your request. Please check the format of your command and try again.'
+      });
+      console.error(error);
+    }
+  }
+
+  async function deleteSlug(slug) {
+    try {
+      if (cache.has(slug)) {
+        cache.delete(slug);
+      }
+
+      await client.query(`
+        DELETE FROM "Links"
+        WHERE slug = $1
+      `, [slug]);
+
+      await say({
+        text: `URL for slug ${slug} has been successfully deleted.`,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `URL for slug ${slug} has been successfully deleted.`
+            }
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Request made by <@${command.user_id}>`
+              }
+            ]
+          }
+        ]
+      });
+    } catch (error) {
+      await say({
+        text: 'There was an error processing your request. The slug may not exist.'
+      });
+      console.error(error);
+    }
+  }
+
+  async function showHelp(command) {
+    switch (command) {
+      default: {
+        await say({
+          text: `Hack.af help`,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `
+\`/hack.af search [slug]\`: Search for a particular slug in the database  
+\`/hack.af shorten [url]\`: Shorten any url to a random hack.af link  
+\`/hack.af set [slug] [url]\` (admin-only): Shorten url to hack.af/[slug]
+\`/hack.af delete [slug]\` (admin-only): Delete a slug from the database
+                `
+              }
+            },
           ]
-        }
-      ]
-    });
-  } catch (error) {
-    await say({
-      text: 'There was an error processing your request. Please check the format of your command and try again.'
-    });
-    console.error(error);
+        });
+      }
+    }
+  }
+
+  await ack();
+
+  const args = command.text.split(' ');
+  const isStaff = await isStaffMember(command.user_id);
+
+  switch (args[0].toLowerCase()) {
+    case 'set': {
+      if (!isStaff) {
+        return await say({
+          text: 'Sorry, only staff can use this command'
+        });
+      }
+      if (args.length !== 3) {
+        return await say({
+          text: 'This command accepts exactly two arguments. Please check your formatting.'
+        });
+      }
+      return await changeSlug(...args.slice(1))
+    }
+    case 'search': {
+      if (!isStaff) {
+        return await say({
+          text: 'Sorry, only staff can use this command'
+        });
+      }
+      if (args.length !== 2) {
+        return await say({
+          text: 'This command accepts exactly one argument. Please check your formatting.'
+        });
+      }
+      return await searchSlug(args[1])
+    }
+    case 'shorten': {
+      if (args.length !== 2) {
+        return await say({
+          text: 'This command accepts exactly one argument. Please check your formatting.'
+        });
+      }
+      return await shortenUrl(args[1])
+    }
+    case 'delete': {
+      if (!isStaff) {
+        return await say({
+          text: 'Sorry, only staff can use this command'
+        });
+      }
+      if (args.length !== 2) {
+        return await say({
+          text: 'This command accepts exactly one argument. Please check your formatting.'
+        });
+      }
+      return await deleteSlug(args[1])
+    }
+    case 'help':
+    default: {
+      await showHelp(null)
+    }
   }
 });
 
