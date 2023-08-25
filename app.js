@@ -46,14 +46,11 @@ app.listen(port, () => {
 });
 
 app.use(responseTime(function (req, res, time) {
-    const stat = (req.method + "-" + req.url.split('?')[0].split('/')[1]).toLowerCase()
-        .replace(/[:.]/g, '')
-        .replace(/\//g, '_')
-    const httpCode = res.statusCode
-    const timingStatKey = `http.response.${stat}`
-    const codeStatKey = `http.response.${stat}.${httpCode}`
-    metrics.timing(timingStatKey, time)
-    metrics.increment(codeStatKey, 1)
+  const reqTrace = req.method + "-" + res.statusCode;
+  const timingStatKey = `http.response.${reqTrace}`;
+  const codeStatKey = `http.response.${reqTrace}`
+  metrics.timing(timingStatKey, time)
+  metrics.increment(codeStatKey, 1)
 }))
 
 
