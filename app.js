@@ -267,19 +267,19 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
             run: changeSlug,
             arguments: 2,
             staffRequired: true,
-            helpEntry: "Search for a particular slug in the database."
+            helpEntry: "Shorten url to hack.af/[slug]"
         },
         search: {
             run: searchSlug,
             arguments: 1,
             staffRequired: false,
-            helpEntry: "Shorten any url to a random hack.af link."
+            helpEntry: "Search for a particular slug in the database."
         },
         shorten: {
             run: shortenUrl,
             arguments: 1,
             staffRequired: false,
-            helpEntry: "Shorten url to hack.af/[slug]"
+            helpEntry: "Shorten any url to a random hack.af link."
         },
         'delete': {
             run: deleteSlug,
