@@ -69,7 +69,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
 
         await client.query(`
         WITH updated AS (
-            UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
+            UPDATE "Links" SET destination = $3 WHERE slug = $2 RETURNING *
         )
         INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
         SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
