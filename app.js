@@ -132,7 +132,9 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
                         }
                     ]
                 };
-            }).push({
+            })
+
+            blocks.push({
                 type: 'context',
                 elements: [
                     {
