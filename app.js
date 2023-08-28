@@ -243,7 +243,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
                         text: {
                             type: 'mrkdwn',
                             text: command
-                                ? commands[command].helpEntry
+                                ? `\`/hack.af ${command}\`: ${commands[command].helpEntry}`
                                 : Object.keys(commands).map((key) =>
                                     `\`/hack.af ${key}\`: ${commands[key].helpEntry}`
                                 ).join("\n")
@@ -289,7 +289,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
         },
         help: {
             run: showHelp,
-            arguments: 0,
+            arguments: [0,1],
             staffRequired: false,
             helpEntry: "Show help"
         }
@@ -303,7 +303,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
         return await say({
             text: 'Sorry, only staff can use this command'
         });
-    if (commandEntry.arguments !== args.length - 1)
+    if (!commandEntry.arguments.includes(args.length - 1))
         return await say({
             text: `The command accepts ${commandEntry.arguments} arguments, but you supplied ${args.length - 1}. Please check your formatting.`
         })
