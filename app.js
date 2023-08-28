@@ -55,6 +55,8 @@ app.use(responseTime(function (req, res, time) {
 
 
 SlackApp.command("/hack.af", async ({command, ack, say}) => {
+    await ack();
+    
     const args = command.text.split(' ');
     const isStaff = await isStaffMember(command.user_id);
 
@@ -294,8 +296,6 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
             helpEntry: "Show help"
         }
     }
-
-    await ack();
 
     const commandEntry = commands[args[0]] || commands.help
 
