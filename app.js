@@ -236,7 +236,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
         };
     }
 
-    async function showHelp(command) {
+    async function showHelp(commandName) {
             return {
                 text: `Hack.af help`,
                 blocks: [
@@ -244,8 +244,8 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
                         type: 'section',
                         text: {
                             type: 'mrkdwn',
-                            text: command
-                                ? `\`/hack.af ${command}\`: ${commands[command].helpEntry}`
+                            text: commandName
+                                ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}`
                                 : Object.keys(commands).map((key) =>
                                     `\`/hack.af ${key}\`: ${commands[key].helpEntry}`
                                 ).join("\n")
