@@ -1,6 +1,6 @@
 import pg from 'pg';
 
-const {Client} = pg;
+const { Client } = pg;
 import express from "express";
 import bodyParser from "body-parser";
 import isBot from "isbot";
@@ -8,14 +8,14 @@ import querystring from "querystring";
 import dotenv from "dotenv";
 import bolt from "@slack/bolt";
 
-const {App, LogLevel} = bolt;
+const { App, LogLevel } = bolt;
 import responseTime from "response-time";
 import metrics from './metrics.js';
-import {LRUCache} from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 
 dotenv.config();
 
-const cache = new LRUCache({max: parseInt(process.env.CACHE_SIZE)});
+const cache = new LRUCache({ max: parseInt(process.env.CACHE_SIZE) });
 
 const SlackApp = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -38,7 +38,7 @@ const app = express();
 
 app.use(forceHttps);
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
@@ -46,17 +46,17 @@ app.listen(port, () => {
 });
 
 app.use(responseTime(function (req, res, time) {
-  const reqTrace = req.method + "-" + res.statusCode;
-  const timingStatKey = `http.response.${reqTrace}`;
-  const codeStatKey = `http.response.${reqTrace}`
-  metrics.timing(timingStatKey, time)
-  metrics.increment(codeStatKey, 1)
+    const reqTrace = req.method + "-" + res.statusCode;
+    const timingStatKey = `http.response.${reqTrace}`;
+    const codeStatKey = `http.response.${reqTrace}`
+    metrics.timing(timingStatKey, time)
+    metrics.increment(codeStatKey, 1)
 }))
 
 
-SlackApp.command("/hack.af", async ({command, ack, say}) => {
+SlackApp.command("/hack.af", async ({ command, ack, say }) => {
     await ack();
-    
+
     const args = command.text.split(' ');
     const isStaff = await isStaffMember(command.user_id);
 
@@ -208,7 +208,7 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
     }
 
     async function deleteSlug(slug) {
-            cache.delete(slug)
+        cache.delete(slug)
 
         await client.query(`
         DELETE FROM "Links"
@@ -239,31 +239,31 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
     }
 
     async function showHelp(commandName) {
-            return {
-                text: `Hack.af help`,
-                blocks: [
-                    {
-                        type: 'section',
-                        text: {
-                            type: 'mrkdwn',
-                            text: commandName
-                                ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}`
-                                : Object.keys(commands).map((key) =>
-                                    `\`/hack.af ${key}\`: ${commands[key].helpEntry}`
-                                ).join("\n")
-                        }
-                    },
-                    {
-                        type: 'context',
-                        elements: [
-                            {
-                                type: 'mrkdwn',
-                                text: `Request made by <@${command.user_id}>`
-                            }
-                        ]
+        return {
+            text: `Hack.af help`,
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: commandName
+                            ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}`
+                            : Object.keys(commands).map((key) =>
+                                `\`/hack.af ${key}\`: ${commands[key].helpEntry}`
+                            ).join("\n")
                     }
-                ]
-            }
+                },
+                {
+                    type: 'context',
+                    elements: [
+                        {
+                            type: 'mrkdwn',
+                            text: `Request made by <@${command.user_id}>`
+                        }
+                    ]
+                }
+            ]
+        }
     }
 
     const commands = {
@@ -293,9 +293,15 @@ SlackApp.command("/hack.af", async ({command, ack, say}) => {
         },
         help: {
             run: showHelp,
-            arguments: [0,1],
+            arguments: [0, 1],
             staffRequired: false,
             helpEntry: "Show help"
+        },
+        metrics: {
+            run: getMetrics,
+            arguments: [1],
+            staffRequired: true,
+            helpEntry: "Retrieve and display metrics for a specific slug."
         }
     }
 
@@ -410,7 +416,7 @@ function combineQueries(q1, q2) {
         }
     }
 
-    const combinedQuery = {...q1, ...q2};
+    const combinedQuery = { ...q1, ...q2 };
     let combinedQueryString = querystring.stringify(combinedQuery);
 
     if (combinedQueryString) {
@@ -495,6 +501,67 @@ async function logAccess(ip, ua, slug, url) {
         }
     );
 }
+
+async function getMetrics(slug) {
+    try {
+        const res = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [slug]);
+
+        if (res.rows.length > 0) {
+            const logData = res.rows[0];
+            const formattedLogData = formatLogData(logData);
+
+            return {
+                text: `Metrics for slug ${slug}:`,
+                blocks: [
+                    {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: formattedLogData
+                        }
+                    }
+                ]
+            };
+        } else {
+            return {
+                text: `No metrics found for slug ${slug}.`,
+                blocks: [
+                    {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: `No metrics found for slug ${slug}.`
+                        }
+                    }
+                ]
+            };
+        }
+    } catch (error) {
+        console.error(error);
+        return {
+            text: 'There was an error retrieving metrics.',
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: 'There was an error retrieving metrics.'
+                    }
+                }
+            ]
+        };
+    }
+}
+
+function formatLogData(logData) {
+
+    let formattedData = `*Timestamp:* ${logData.timestamp}\n`;
+    formattedData += `*Client IP:* ${logData.client_ip}\n`;
+    formattedData += `*User Agent:* ${logData.user_agent}\n`;
+
+    return formattedData;
+}
+
 
 function getClientIp(req) {
     const forwardedIpsStr = req.header("x-forwarded-for");
