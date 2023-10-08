@@ -504,10 +504,14 @@ async function logAccess(ip, ua, slug, url) {
 
 async function getMetrics(slug) {
     try {
+        console.log(`Getting metrics for slug: ${slug}`);
         const res = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [slug]);
+        console.log('Query result:', res);
 
         if (res.rows.length > 0) {
             const logData = res.rows[0];
+            console.log('Raw log data:', logData);
+
             const formattedLogData = formatLogData(logData);
 
             return {
@@ -537,7 +541,7 @@ async function getMetrics(slug) {
             };
         }
     } catch (error) {
-        console.error(error);
+        console.error('Error in getMetrics:', error);
         return {
             text: 'There was an error retrieving metrics.',
             blocks: [
@@ -554,12 +558,15 @@ async function getMetrics(slug) {
 }
 
 function formatLogData(logData) {
-
-    let formattedData = `*Timestamp:* ${logData.timestamp}\n`;
-    formattedData += `*Client IP:* ${logData.client_ip}\n`;
-    formattedData += `*User Agent:* ${logData.user_agent}\n`;
-
-    return formattedData;
+    return `
+        *Timestamp:* ${logData["Timestamp"] || 'N/A'}
+        *Client IP:* ${logData["Client IP"] || 'N/A'}
+        *Slug:* ${logData["Slug"] || 'N/A'}
+        *URL:* ${logData["URL"] || 'N/A'}
+        *User Agent:* ${logData["User Agent"] || 'N/A'}
+        *Counter:* ${logData["Counter"] || 'N/A'}
+        *Descriptive Timestamp:* ${logData["Descriptive Timestamp"] || 'N/A'}
+    `;
 }
 
 
