@@ -560,12 +560,9 @@ async function getMetrics(slug) {
 function formatLogData(logData) {
     return `
         *Timestamp:* ${logData["Timestamp"] || 'N/A'}
-        *Client IP:* ${logData["Client IP"] || 'N/A'}
         *Slug:* ${logData["Slug"] || 'N/A'}
         *URL:* ${logData["URL"] || 'N/A'}
-        *User Agent:* ${logData["User Agent"] || 'N/A'}
         *Counter:* ${logData["Counter"] || 'N/A'}
-        *Descriptive Timestamp:* ${logData["Descriptive Timestamp"] || 'N/A'}
     `;
 }
 
