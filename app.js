@@ -69,6 +69,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
         let res;
         try {
+            console.log(`Debug: recordId=${recordId}, slug=${slug}, newDestination=${newDestination}, qrUrl=${qrUrl}`);
             res = await client.query(`
             WITH updated AS (
                 UPDATE "Links" SET destination = $3 WHERE slug = $2 RETURNING *
