@@ -54,7 +54,7 @@ app.use(responseTime(function (req, res, time) {
 }))
 
 
-SlackApp.command("/hack.af", async ({ command, ack, say }) => {
+SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
@@ -354,20 +354,22 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
     const commandEntry = commands[args[0]] || commands.help
 
     if (commandEntry.staffRequired && !isStaff)
-        return await say({
-            text: 'Sorry, only staff can use this command'
+        return await respond({
+            text: 'Sorry, only staff can use this command',
+            response_type: 'ephemeral'
         });
     if (!commandEntry.arguments.includes(args.length - 1))
-        return await say({
-            text: `The command accepts ${commandEntry.arguments} arguments, but you supplied ${args.length - 1}. Please check your formatting.`
+        return await respond({
+            text: `The command accepts ${commandEntry.arguments} arguments, but you supplied ${args.length - 1}. Please check your formatting.`,
+            response_type: 'ephemeral'
         })
     try {
-        await say(
-            await commandEntry.run(...args.slice(1))
-        )
+        const result = await commandEntry.run(...args.slice(1));
+        await respondEphemeral(respond, result);
     } catch (error) {
-        await say({
-            text: 'There was an error processing your request.'
+        await respond({
+            text: 'There was an error processing your request.',
+            response_type: 'ephemeral'
         });
         console.error(error);
     }
@@ -445,6 +447,13 @@ app.get("/*", (req, res) => {
     });
 });
 
+
+async function respondEphemeral(response, message) {
+    return await response({
+        ...message,
+        response_type: 'ephemeral'
+    });
+}
 
 function combineQueries(q1, q2) {
 
