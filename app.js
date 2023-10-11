@@ -62,37 +62,49 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
     async function changeSlug(slug, newDestination) {
         cache.delete(slug);
-
+    
         // if record doesn't already exist
         const recordId = Math.random().toString(36).substring(2, 15);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-
-        let res;
-        try {
-            console.log(`Debug: recordId=${recordId}, slug=${slug}, newDestination=${newDestination}, qrUrl=${qrUrl}`);
-            res = await client.query(`
-            WITH updated AS (
-                UPDATE "Links" SET destination = $3 WHERE slug = $2 RETURNING *
-            )
-            INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
-            SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
-          `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
-        } catch (error) {
-            console.error("Database error:", error);
-            // Handle the error appropriately
-        }
-
-        console.log("Query Result:", res); 
     
-        if (res && res.rowCount > 0) {
-            console.log("Calling insertSlugHistory");  // Debugging line
+        let updateRes;
+        try {
+            console.log(`Debug: Updating destination for slug=${slug}, newDestination=${newDestination}`);
+            updateRes = await client.query(`
+                UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
+            `, [newDestination, slug]);
+        } catch (error) {
+            console.error("Database error in UPDATE:", error);
+        }
+    
+        if (updateRes && updateRes.rowCount > 0) {
+            console.log("Update successful:", updateRes.rows);
             try {
                 await insertSlugHistory(slug, newDestination, 'update', 'Note here', command.user_id);
             } catch (error) {
                 console.error("Error in insertSlugHistory:", error);
             }
-        }
-
+        } else {
+            console.log("No rows updated. Attempting to insert.");
+            let insertRes;
+            try {
+                console.log(`Debug: Inserting new row for recordId=${recordId}, slug=${slug}, newDestination=${newDestination}, qrUrl=${qrUrl}`);
+                insertRes = await client.query(`
+                    INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
+                if (insertRes.rowCount > 0) {
+                    console.log("Insert successful:", insertRes.rows);
+                    try {
+                        await insertSlugHistory(slug, newDestination, 'insert', 'Note here', command.user_id);
+                    } catch (error) {
+                        console.error("Error in insertSlugHistory:", error);
+                    }
+                }
+            } catch (error) {
+                console.error("Database error in INSERT:", error);
+            }
+        }    
         return {
             text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
             blocks: [
