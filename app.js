@@ -80,9 +80,16 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
             console.error("Database error:", error);
             // Handle the error appropriately
         }
+
+        console.log("Query Result:", res); 
     
         if (res && res.rowCount > 0) {
-            await insertSlugHistory(slug, newDestination, 'update', 'Note here', command.user_id);
+            console.log("Calling insertSlugHistory");  // Debugging line
+            try {
+                await insertSlugHistory(slug, newDestination, 'update', 'Note here', command.user_id);
+            } catch (error) {
+                console.error("Error in insertSlugHistory:", error);
+            }
         }
 
         return {
@@ -576,16 +583,21 @@ async function getMetrics(slug) {
     }
 }
 
-async function insertSlugHistory(slug, newDestination, actionType, note, version, changedBy) {
-    await client.query(`
-        INSERT INTO "SlugHistory" (slug, new_url, action_type, note, version, changed_by, changed_at)
-        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP);
-    `, [slug, newDestination, actionType, note, version, changedBy]);
+async function insertSlugHistory(slug, newDestination, actionType, note, changedBy) {
+    console.log("Inside insertSlugHistory with values:", slug, newDestination, actionType, note, changedBy);
+    try {
+        await client.query(`
+            INSERT INTO "slughistory" (slug, new_url, action_type, note, changed_by, changed_at)
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP);
+        `, [slug, newDestination, actionType, note, changedBy]);
+    } catch (error) {
+        console.error("Database error in insertSlugHistory:", error);
+    }
 }
 
 async function getSlugHistory(slug) {
     const res = await client.query(`
-        SELECT * FROM "SlugHistory" WHERE slug = $1 ORDER BY version DESC;
+        SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
     `, [slug]);
     return res.rows;
 }
