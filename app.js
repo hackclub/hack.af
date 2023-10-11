@@ -67,13 +67,23 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
         const recordId = Math.random().toString(36).substring(2, 15);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
 
-        await client.query(`
-        WITH updated AS (
-            UPDATE "Links" SET destination = $3 WHERE slug = $2 RETURNING *
-        )
-        INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
-        SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
-      `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
+        let res;
+        try {
+            res = await client.query(`
+            WITH updated AS (
+                UPDATE "Links" SET destination = $3 WHERE slug = $2 RETURNING *
+            )
+            INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
+            SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM updated);
+          `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
+        } catch (error) {
+            console.error("Database error:", error);
+            // Handle the error appropriately
+        }
+    
+        if (res && res.rowCount > 0) {
+            await insertSlugHistory(slug, newDestination, 'update', 'Note here', command.user_id);
+        }
 
         return {
             text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
@@ -302,6 +312,15 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve and display metrics for a specific slug."
+        },
+        history: {
+            run: async function(slug) {
+                const history = await getSlugHistory(slug);
+                return formatHistory(history);
+            },
+            arguments: [1],
+            staffRequired: true,
+            helpEntry: "Retrieve history of slugs over time."
         }
     }
 
@@ -555,6 +574,50 @@ async function getMetrics(slug) {
             ]
         };
     }
+}
+
+async function insertSlugHistory(slug, newDestination, actionType, note, version, changedBy) {
+    await client.query(`
+        INSERT INTO "SlugHistory" (slug, new_url, action_type, note, version, changed_by, changed_at)
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP);
+    `, [slug, newDestination, actionType, note, version, changedBy]);
+}
+
+async function getSlugHistory(slug) {
+    const res = await client.query(`
+        SELECT * FROM "SlugHistory" WHERE slug = $1 ORDER BY version DESC;
+    `, [slug]);
+    return res.rows;
+}
+
+function formatHistory(history) {
+    const blocks = history.map(record => {
+        return {
+            type: 'section',
+            fields: [
+                {
+                    type: 'mrkdwn',
+                    text: `*Version:* ${record.version}`
+                },
+                {
+                    type: 'mrkdwn',
+                    text: `*New URL:* ${decodeURIComponent(record.new_url)}`
+                },
+                {
+                    type: 'mrkdwn',
+                    text: `*Changed By:* ${record.changed_by}`
+                },
+                {
+                    type: 'mrkdwn',
+                    text: `*Changed At:* ${record.changed_at}`
+                }
+            ]
+        };
+    });
+
+    return {
+        blocks
+    };
 }
 
 function formatLogData(logData) {
