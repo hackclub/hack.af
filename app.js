@@ -62,11 +62,11 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
     async function changeSlug(slug, newDestination) {
         cache.delete(slug);
-    
+
         // if record doesn't already exist
         const recordId = Math.random().toString(36).substring(2, 15);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-    
+
         let updateRes;
         try {
             console.log(`Debug: Updating destination for slug=${slug}, newDestination=${newDestination}`);
@@ -76,11 +76,11 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
         } catch (error) {
             console.error("Database error in UPDATE:", error);
         }
-    
+
         if (updateRes && updateRes.rowCount > 0) {
             console.log("Update successful:", updateRes.rows);
             try {
-                await insertSlugHistory(slug, newDestination, 'update', 'Note here', command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
             } catch (error) {
                 console.error("Error in insertSlugHistory:", error);
             }
@@ -96,7 +96,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
                 if (insertRes.rowCount > 0) {
                     console.log("Insert successful:", insertRes.rows);
                     try {
-                        await insertSlugHistory(slug, newDestination, 'insert', 'Note here', command.user_id);
+                        await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
                     } catch (error) {
                         console.error("Error in insertSlugHistory:", error);
                     }
@@ -104,7 +104,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
             } catch (error) {
                 console.error("Database error in INSERT:", error);
             }
-        }    
+        }
         return {
             text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
             blocks: [
@@ -149,6 +149,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
 
         if (records.length > 0) {
             const blocks = records.map(record => {
+                const Notes = record.Notes ? `\n*Notes:* ${record.Notes}` : '';
                 return {
                     type: 'section',
                     fields: [
@@ -158,7 +159,7 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
                         },
                         {
                             type: 'mrkdwn',
-                            text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`
+                            text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}> ${Notes}`
                         }
                     ]
                 };
@@ -334,13 +335,19 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
             helpEntry: "Retrieve and display metrics for a specific slug."
         },
         history: {
-            run: async function(slug) {
+            run: async function (slug) {
                 const history = await getSlugHistory(slug);
                 return formatHistory(history);
             },
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve history of slugs over time."
+        },
+        note: {
+            run: updateNotes,
+            arguments: [0, 1],
+            staffRequired: true,
+            helpEntry: "Add / update notes to slug"
         }
     }
 
@@ -593,6 +600,21 @@ async function getMetrics(slug) {
                 }
             ]
         };
+    }
+}
+
+async function updateNotes(slug, Note) {
+    try {
+        const res = await client.query(`
+            UPDATE "Links" SET Notes = $1 WHERE slug = $2 RETURNING *
+        `, [Note, slug]);
+        if (res.rowCount > 0) {
+            console.log("Note updated successfully");
+        } else {
+            console.log("Slug not found");
+        }
+    } catch (error) {
+        console.error("Database error:", error);
     }
 }
 
