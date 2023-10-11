@@ -587,10 +587,19 @@ async function getMetrics(slug) {
 async function insertSlugHistory(slug, newDestination, actionType, note, changedBy) {
     console.log("Inside insertSlugHistory with values:", slug, newDestination, actionType, note, changedBy);
     try {
+
+        const result = await client.query(`
+            SELECT MAX(version) as latest_version FROM "slughistory" WHERE slug = $1;
+        `, [slug]);
+
+
+        const latestVersion = result.rows[0].latest_version || 0;
+        const nextVersion = latestVersion + 1;
+
         await client.query(`
-            INSERT INTO "slughistory" (slug, new_url, action_type, note, changed_by, changed_at)
-            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP);
-        `, [slug, newDestination, actionType, note, changedBy]);
+            INSERT INTO "slughistory" (slug, new_url, action_type, note, version, changed_by, changed_at)
+            VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP);
+        `, [slug, newDestination, actionType, note, nextVersion, changedBy]);
     } catch (error) {
         console.error("Database error in insertSlugHistory:", error);
     }
