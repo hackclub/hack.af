@@ -131,27 +131,31 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     }
 
     async function searchSlug(searchTerm) {
-
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
 
         let query = "";
         let queryParams = [];
 
         if (isURL) {
-            query = `SELECT * FROM "Links" WHERE destination = $1`;
-            queryParams = [encodeURIComponent(searchTerm)];
+            exactQuery = `SELECT * FROM "Links" WHERE destination = $1`;
+            likeQuery = `SELECT * FROM "Links" WHERE destination LIKE $2`;
+            queryParams = [encodeURIComponent(searchTerm), `%${encodeURIComponent(searchTerm)}%`];
         } else {
-            query = `SELECT * FROM "Links" WHERE slug = $1`;
-            queryParams = [searchTerm];
+            exactQuery = `SELECT * FROM "Links" WHERE slug = $1`;
+            likeQuery = `SELECT * FROM "Links" WHERE slug LIKE $2`;
+            queryParams = [searchTerm, `%${searchTerm}%`];
         }
 
-        const res = await client.query(query, queryParams);
-        const records = res.rows;
+        let res = await client.query(exactQuery, [queryParams[0]]);
+        let records = res.rows;
 
+        if (records.length === 0) {
+            res = await client.query(likeQuery, [queryParams[1]]);
+            records = res.rows;
+        }
 
         if (records.length > 0) {
             const blocks = records.map(record => {
-                const Notes = record.Notes ? `\n*Notes:* ${record.Notes}` : '';
                 return {
                     type: 'section',
                     fields: [
@@ -161,7 +165,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                         },
                         {
                             type: 'mrkdwn',
-                            text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}> ${Notes}`
+                            text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`
                         }
                     ]
                 };
