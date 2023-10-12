@@ -285,10 +285,8 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                     text: {
                         type: 'mrkdwn',
                         text: commandName
-                            ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}\n*Usage*: ${commands[commandName].usage}\n*Parameters*: ${commands[commandName].parameters}`
-                            : Object.keys(commands).map((key) =>
-                                `\`/hack.af ${key}\`: ${commands[key].helpEntry}\n*Usage*: ${commands[key].usage}\n*Parameters*: ${commands[key].parameters}`
-                              ).join("\n\n")
+                            ? generateHelpText(commandName)
+                            : Object.keys(commands).map((key) => generateHelpText(key)).join("\n\n")
                     }
                 },
                 {
@@ -302,6 +300,15 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 }
             ]
         }
+    }
+
+    function generateHelpText(commandName) {
+        const { usage, helpEntry, parameters } = commands[commandName];
+        let helpText = `\`${usage}\`: ${helpEntry}`;
+        if (parameters) {
+            helpText += `\n*Parameters*: ${parameters}`;
+        }
+        return helpText;
     }
 
     const commands = {
