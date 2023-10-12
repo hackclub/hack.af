@@ -285,10 +285,10 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                     text: {
                         type: 'mrkdwn',
                         text: commandName
-                            ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}`
+                            ? `\`/hack.af ${commandName}\`: ${commands[commandName].helpEntry}\n*Usage*: ${commands[commandName].usage}\n*Parameters*: ${commands[commandName].parameters}`
                             : Object.keys(commands).map((key) =>
-                                `\`/hack.af ${key}\`: ${commands[key].helpEntry}`
-                            ).join("\n")
+                                `\`/hack.af ${key}\`: ${commands[key].helpEntry}\n*Usage*: ${commands[key].usage}\n*Parameters*: ${commands[key].parameters}`
+                              ).join("\n\n")
                     }
                 },
                 {
@@ -309,37 +309,48 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             run: changeSlug,
             arguments: [2],
             staffRequired: true,
-            helpEntry: "Shorten url to hack.af/[slug]"
+            helpEntry: "Shorten a URL to a custom slug.",
+            usage: "/hack.af set [slug-name] [destination-url]",
+            parameters: "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten."    
         },
         search: {
             run: searchSlug,
             arguments: [1],
             staffRequired: false,
-            helpEntry: "Search for a particular slug in the database."
+            helpEntry: "Search for a particular slug in the database.",
+            usage: "/hack.af search [slug-name]",
+            parameters: "[slug-name]: The slug you want to search for."
         },
         shorten: {
             run: shortenUrl,
             arguments: [1],
             staffRequired: false,
-            helpEntry: "Shorten any url to a random hack.af link."
+            helpEntry: "Shorten any URL to a random hack.af link.",
+            usage: "/hack.af shorten [url]",
+            parameters: "[url]: The URL you want to shorten."
         },
         'delete': {
             run: deleteSlug,
             arguments: [1],
             staffRequired: true,
-            helpEntry: "Delete a slug from the database."
+            helpEntry: "Delete a slug from the database.",
+            usage: "/hack.af delete [slug-name]",
+            parameters: "[slug-name]: The slug you want to delete."
         },
         help: {
             run: showHelp,
             arguments: [0, 1],
             staffRequired: false,
-            helpEntry: "Show help"
+            helpEntry: "Show help documentation.",
+            usage: "/hack.af help"
         },
         metrics: {
             run: getMetrics,
             arguments: [1],
             staffRequired: true,
-            helpEntry: "Retrieve and display metrics for a specific slug."
+            helpEntry: "Retrieve and display metrics for a specific slug.",
+            usage: "/hack.af metrics [slug-name]",
+            parameters: "[slug-name]: The slug you want to retrieve metrics for."
         },
         history: {
             run: async function (slug) {
@@ -348,13 +359,17 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             },
             arguments: [1],
             staffRequired: true,
-            helpEntry: "Retrieve history of slugs over time."
+            helpEntry: "Retrieve history of slugs over time.",
+            usage: "/hack.af history [slug-name]",
+            parameters: "[slug-name]: The slug you want to retrieve history of."
         },
         note: {
             run: updateNotes,
             arguments: [0, 1],
             staffRequired: true,
-            helpEntry: "Add / update notes to slug"
+            helpEntry: "Add or update notes to a slug.",
+            usage: "/hack.af note [slug-name] [note-content]",
+            parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
         }
     }
 
