@@ -66,7 +66,9 @@ SlackApp.command("/hack.af", async ({ command, ack, say }) => {
         // if record doesn't already exist
         const recordId = Math.random().toString(36).substring(2, 15);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-    
+
+        newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
+            
         let updateRes;
         try {
             console.log(`Debug: Updating destination for slug=${slug}, newDestination=${newDestination}`);
