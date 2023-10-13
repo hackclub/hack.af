@@ -568,17 +568,16 @@ async function logAccess(ip, ua, slug, url) {
     };
 
     client.query(
-        `INSERT INTO "Log" ("Record Id", "Timestamp", "Descriptive Timestamp", "Client IP", "Slug", "URL", "User Agent", "Counter")
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [data.record_id, data.timestamp, data.descriptive_timestamp, data.client_ip, data.slug, data.url, data.user_agent, data.counter],
-        (err, _res) => {
-            if (err) {
-                console.error(err);
+        `UPDATE "Links" SET "Clicks" = "Clicks" + 1, "Log" = array_append("Log", $1), "Visitor IPs" = array_append("Visitor IPs", $2) WHERE "slug" = $3`,
+        [data.record_id, data.client_ip, data.slug],
+        (updateErr, updateRes) => {
+            if (updateErr) {
+                console.error('Error updating Links:', updateErr);
             } else {
-                client.query(`UPDATE "Links" SET "Clicks" = "Clicks" + 1, "Log" = array_append("Log", $1), "Visitor IPs" = array_append("Visitor IPs", $2) WHERE "slug" = $3`, [data.record_id, data.client_ip, data.slug]);
+                console.log('Links updated successfully:', updateRes);
             }
         }
-    );
+    );    
 }
 
 async function getMetrics(slug) {
