@@ -583,14 +583,20 @@ async function logAccess(ip, ua, slug, url) {
 async function getMetrics(slug) {
     try {
         console.log(`Getting metrics for slug: ${slug}`);
-        const res = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [slug]);
-        console.log('Query result:', res);
+        const logRes = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [slug]);
+        console.log('Log Query result:', logRes);
 
-        if (res.rows.length > 0) {
-            const logData = res.rows[0];
+        const linkRes = await client.query('SELECT "Clicks" FROM "Links" WHERE "slug"=$1', [slug]);
+        console.log('Link Query result:', linkRes);
+
+        if (logRes.rows.length > 0 || (linkRes.rows.length > 0 && linkRes.rows[0].Clicks > 0)) {
+            const logData = logRes.rows.length > 0 ? logRes.rows[0] : null;
+            const clicks = linkRes.rows.length > 0 ? linkRes.rows[0].Clicks : 0;
+
             console.log('Raw log data:', logData);
+            console.log('Clicks:', clicks);
 
-            const formattedLogData = formatLogData(logData);
+            const formattedLogData = formatLogData(logData, clicks);
 
             return {
                 text: `Metrics for slug ${slug}:`,
@@ -715,15 +721,14 @@ function formatHistory(history) {
     };
 }
 
-function formatLogData(logData) {
+function formatLogData(logData, clicks) {
     return `
-        *Timestamp:* ${logData["Timestamp"] || 'N/A'}
-        *Slug:* ${logData["Slug"] || 'N/A'}
-        *URL:* ${logData["URL"] || 'N/A'}
-        *Clicks:* ${logData["Clicks"] || 'N/A'}
+        *Timestamp:* ${logData?.["Timestamp"] || 'N/A'}
+        *Slug:* ${logData?.["Slug"] || 'N/A'}
+        *URL:* ${logData?.["URL"] || 'N/A'}
+        *Clicks:* ${clicks || 'N/A'}
     `;
 }
-
 
 function getClientIp(req) {
     const forwardedIpsStr = req.header("x-forwarded-for");
