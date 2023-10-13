@@ -720,7 +720,7 @@ function formatLogData(logData) {
         *Timestamp:* ${logData["Timestamp"] || 'N/A'}
         *Slug:* ${logData["Slug"] || 'N/A'}
         *URL:* ${logData["URL"] || 'N/A'}
-        *Counter:* ${logData["Counter"] || 'N/A'}
+        *Clicks:* ${logData["Clicks"] || 'N/A'}
     `;
 }
 
