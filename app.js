@@ -306,7 +306,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         const { usage, helpEntry, parameters, staffRequired } = commands[commandName];
         let helpText = `\`${usage}\``;
         if (staffRequired) {
-            helpText += `: (**Admin only**)`;
+            helpText += `: (*Admin only*)`;
         }
         helpText += ` ${helpEntry}`;
         if (parameters) {
@@ -345,7 +345,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Delete a slug from the database.",
-            usage: "/hack.af delete [slug-name] (**Admin only**)",
+            usage: "/hack.af delete [slug-name]",
             parameters: "[slug-name]: The slug you want to delete."
         },
         help: {
@@ -360,7 +360,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve and display metrics for a specific slug.",
-            usage: "/hack.af metrics [slug-name] (**Admin only**)",
+            usage: "/hack.af metrics [slug-name]",
             parameters: "[slug-name]: The slug you want to retrieve metrics for."
         },
         history: {
@@ -371,7 +371,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve history of slugs over time.",
-            usage: "/hack.af history [slug-name] (**Admin only**)",
+            usage: "/hack.af history [slug-name]",
             parameters: "[slug-name]: The slug you want to retrieve history of."
         },
         note: {
@@ -379,7 +379,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [0, 1],
             staffRequired: true,
             helpEntry: "Add or update notes to a slug.",
-            usage: "/hack.af note [slug-name] [note-content] (**Admin only**)",
+            usage: "/hack.af note [slug-name] [note-content]",
             parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
         }
     }
