@@ -304,7 +304,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     function generateHelpText(commandName) {
         const { usage, helpEntry, parameters } = commands[commandName];
-        let helpText = `\`${usage}\`: ${helpEntry}`;
+        let helpText = `${usage}: ${helpEntry}`;
         if (parameters) {
             helpText += `\n*Parameters*: ${parameters}`;
         }
