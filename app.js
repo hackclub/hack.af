@@ -205,8 +205,8 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']);
 
-        let msg = `Your short URL: https://hack.af/${slug}`;
-        let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>*`;
+        let msg = `Your short URL: https://hack.af/${slug} -> ${url}`;
+        let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>* -> ${url}`;
 
         if (isStaff) {
             msg += '\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.';
