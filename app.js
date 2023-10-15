@@ -139,11 +139,11 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
         if (isURL) {
             exactQuery = `SELECT * FROM "Links" WHERE destination = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE destination LIKE $2`;
+            likeQuery = `SELECT * FROM "Links" WHERE destination ILIKE $2`;
             queryParams = [encodeURIComponent(searchTerm), `%${encodeURIComponent(searchTerm)}%`];
         } else {
             exactQuery = `SELECT * FROM "Links" WHERE slug = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE slug LIKE $2`;
+            likeQuery = `SELECT * FROM "Links" WHERE slug ILIKE $2`;
             queryParams = [searchTerm, `%${searchTerm}%`];
         }
 
