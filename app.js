@@ -403,7 +403,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     } catch (error) {
         await respond({
-            text: 'There was an error processing your request.',
+            text: `There was an error processing your request: ${error.message}`,
             response_type: 'ephemeral'
         });
         console.error(error);
@@ -689,10 +689,15 @@ async function insertSlugHistory(slug, newDestination, actionType, note, changed
 }
 
 async function getSlugHistory(slug) {
-    const res = await client.query(`
-        SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
-    `, [slug]);
-    return res.rows;
+    try {
+        const res = await client.query(`
+            SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
+        `, [slug]);
+        return res.rows;
+    } catch (error) {
+        console.error("SQL Error: ", error);
+        throw new Error("Error fetching slug history");
+    }
 }
 
 function formatHistory(history) {
