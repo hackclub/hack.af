@@ -695,14 +695,44 @@ async function getSlugHistory(slug) {
     console.log("Fetching slug history for slug:", slug);
 
     try {
-        const res = await client.query(`
+        let res = await client.query(`
             SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
         `, [slug]);
 
         console.log("Query result rows:", res.rows);
 
         if (res.rows.length === 0) {
-            console.log("No records found for slug:", slug);
+            console.log("No records found for slug in 'slughistory':", slug, ". Fetching from 'Log'...");
+
+            let logResult = await client.query(`
+                SELECT * FROM "Log" WHERE "Slug" = $1 LIMIT 1;
+            `, [slug]);
+
+            if (logResult.rows.length === 0) {
+                logResult = await client.query(`
+                    SELECT * FROM "Log" WHERE "Slug" = $1 LIMIT 1;
+                `, [`{${slug}}`]);
+            }
+
+            if (logResult.rows.length > 0) {
+                const logData = logResult.rows[0];
+                const cleanSlug = logData["Slug"].replace(/[{}]/g, '');
+                const newDestination = logData["URL"];
+                const date = logData["Descriptive Timestamp"]
+
+                console.log(`Found slug=${slug} in "Log". Inserting into "slughistory"...`);
+
+                await client.query(`
+                    INSERT INTO "slughistory" (slug, new_url, action_type, note, version, changed_by, changed_at)
+                    VALUES ($1, $2, 'Created', 'Imported from Log', 1, '', CURRENT_TIMESTAMP);
+                `, [cleanSlug, newDestination,"Created","","1","",date]);
+
+                res = await client.query(`
+                    SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
+                `, [slug]);
+            } else {
+                console.log("No records found for slug in 'Log':", slug);
+            }
         }
 
         return res.rows;
@@ -734,7 +764,15 @@ function formatHistory(history) {
                 },
                 {
                     type: 'mrkdwn',
-                    text: `*Changed At:* ${record.changed_at}`
+                    text: `*Changed At:* ${new Date(record.changed_at).toLocaleString()}`
+                },
+                {
+                    type: 'mrkdwn',
+                    text: `*Action Type:* ${record.action_type}`
+                },
+                {
+                    type: 'mrkdwn',
+                    text: `*Note:* ${record.note}`
                 }
             ]
         };
