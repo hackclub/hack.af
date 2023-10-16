@@ -686,7 +686,10 @@ async function updateNotes(...args) {
         `, [Note, slug]);
         if (res.rowCount > 0) {
             console.log("Note updated successfully");
-            return 'Note updated successfully';
+            return {
+                text: `Note updated successfully \n New Note for ${slug} is ${Note}`,
+                response_type: 'ephemeral'
+            }
         } else {
             console.log("Slug not found");
             return 'Slug not found';
