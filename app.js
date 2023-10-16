@@ -676,9 +676,9 @@ async function updateNotes(...args) {
 
     console.log(args);
     
-    const slug = args[1];
+    const slug = args[0];
 
-    const Note = args.slice(2).join(' ');
+    const Note = args.slice(1).join(' ');
 
     try {
         const res = await client.query(`
