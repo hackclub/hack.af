@@ -644,6 +644,7 @@ async function getMetrics(slug) {
 
 async function getHistory(slug) {
     const history = await getSlugHistory(slug);
+    console.log("function history " + history)
     return formatHistory(history);
 }
 
@@ -691,10 +692,19 @@ async function insertSlugHistory(slug, newDestination, actionType, note, changed
 }
 
 async function getSlugHistory(slug) {
+    console.log("Fetching slug history for slug:", slug);
+
     try {
         const res = await client.query(`
             SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
         `, [slug]);
+
+        console.log("Query result rows:", res.rows);
+
+        if (res.rows.length === 0) {
+            console.log("No records found for slug:", slug);
+        }
+
         return res.rows;
     } catch (error) {
         console.error("SQL Error: ", error);
@@ -703,7 +713,7 @@ async function getSlugHistory(slug) {
 }
 
 function formatHistory(history) {
-    
+
     console.log("history: " + history);
 
     const blocks = history.map(record => {
