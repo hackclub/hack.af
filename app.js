@@ -131,6 +131,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     }
 
     async function searchSlug(searchTerm) {
+        if (!searchTerm) {
+            return {
+                text: 'No slug provided. Please provide a slug to search for.',
+                response_type: 'ephemeral'
+            };
+        }
+
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
 
         let exactQuery = "";
@@ -147,49 +154,59 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             queryParams = [searchTerm, `%${searchTerm}%`];
         }
 
-        let res = await client.query(exactQuery, [queryParams[0]]);
-        let records = res.rows;
+        try {
+            let res = await client.query(exactQuery, [queryParams[0]]);
+            let records = res.rows;
 
         if (records.length === 0) {
             res = await client.query(likeQuery, [queryParams[1]]);
             records = res.rows;
         }
 
-        if (records.length > 0) {
-            const blocks = records.map(record => {
-                return {
-                    type: 'section',
-                    fields: [
+            if (records.length > 0) {
+                const blocks = records.map(record => {
+                    return {
+                        type: 'section',
+                        fields: [
+                            {
+                                type: 'mrkdwn',
+                                text: `*Slug:* ${record.slug}`
+                            },
+                            {
+                                type: 'mrkdwn',
+                                text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`
+                            }
+                        ]
+                    };
+                });
+
+                blocks.push({
+                    type: 'context',
+                    elements: [
                         {
                             type: 'mrkdwn',
-                            text: `*Slug:* ${record.slug}`
-                        },
-                        {
-                            type: 'mrkdwn',
-                            text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`
+                            text: `Request made by <@${command.user_id}>`
                         }
                     ]
+                });
+
+                return {
+                    blocks
                 };
-            })
-
-            blocks.push({
-                type: 'context',
-                elements: [
-                    {
-                        type: 'mrkdwn',
-                        text: `Request made by <@${command.user_id}>`
-                    }
-                ]
-            });
+            } else {
+                if (isURL) searchTerm = decodeURIComponent(searchTerm);
+                return {
+                    text: `No matches found for ${searchTerm}.`,
+                    response_type: 'ephemeral'
+                };
+            }
+        } catch (error) {
+            console.error('SQL error:', error);
 
             return {
-                blocks
-            }
-        } else {
-            if (isURL) searchTerm = decodeURIComponent(searchTerm);
-            return {
-                text: `No matches found for ${searchTerm}.`
-            }
+                text: 'No slug found or there was an error with the query.',
+                response_type: 'ephemeral'
+            };
         }
     }
 
