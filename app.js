@@ -82,7 +82,8 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         if (updateRes && updateRes.rowCount > 0) {
             console.log("Update successful:", updateRes.rows);
             try {
-                await insertSlugHistory(slug, newDestination, 'Updated', 'Note here', command.user_id);
+                const existingNotes = await getNotes(slug);
+                await insertSlugHistory(slug, newDestination, 'Updated', existingNotes , command.user_id);
             } catch (error) {
                 console.error("Error in insertSlugHistory:", error);
             }
@@ -130,6 +131,24 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         };
     }
 
+    async function getNotes(slug) {
+        try {
+            const res = await client.query(`
+                SELECT "Notes" FROM "Links" WHERE slug = $1 LIMIT 1
+            `, [slug]);
+    
+            if (res.rows.length > 0) {
+                return res.rows[0]["Notes"];
+            } else {
+                console.log(`No notes found for slug=${slug}`);
+                return '';
+            }
+        } catch (error) {
+            console.error("Database error in getNotes:", error);
+            throw error;
+        }
+    }
+    
     async function searchSlug(searchTerm) {
         if (!searchTerm) {
             return {
@@ -668,7 +687,6 @@ async function getMetrics(slug) {
 
 async function getHistory(slug) {
     const history = await getSlugHistory(slug);
-    console.log("function history " + history)
     return formatHistory(history);
 }
 
@@ -692,11 +710,17 @@ async function updateNotes(...args) {
             }
         } else {
             console.log("Slug not found");
-            return 'Slug not found';
+            return {
+                text: `Slug not found`,
+                response_type: 'ephemeral'
+            }
         }
     } catch (error) {
         console.error("Database error:", error);
-        return 'An error occurred while updating the note';
+        return {
+            text: `An error occurred while updating the note`,
+            response_type: 'ephemeral'
+        }
     }
 }
 
