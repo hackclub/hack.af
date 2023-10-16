@@ -364,10 +364,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             parameters: "[slug-name]: The slug you want to retrieve metrics for."
         },
         history: {
-            run: async function (slug) {
-                const history = await getSlugHistory(slug);
-                return formatHistory(history);
-            },
+            run: getHistory,
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve history of slugs over time.",
@@ -645,6 +642,11 @@ async function getMetrics(slug) {
     }
 }
 
+async function getHistory(slug) {
+    const history = await getSlugHistory(slug);
+    return formatHistory(history);
+}
+
 async function updateNotes(slug, Note) {
     try {
         const res = await client.query(`
@@ -701,6 +703,9 @@ async function getSlugHistory(slug) {
 }
 
 function formatHistory(history) {
+    
+    console.log("history: " + history);
+
     const blocks = history.map(record => {
         return {
             type: 'section',
