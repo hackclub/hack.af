@@ -687,7 +687,8 @@ async function getMetrics(slug) {
 
 async function getHistory(slug) {
     const history = await getSlugHistory(slug);
-    return formatHistory(history);
+    const note = await getNotes(slug)
+    return formatHistory(history,note);
 }
 
 async function updateNotes(...args) {
@@ -803,7 +804,7 @@ async function getSlugHistory(slug) {
     }
 }
 
-function formatHistory(history) {
+function formatHistory(history,note) {
 
     console.log("history: " + history);
 
@@ -833,7 +834,7 @@ function formatHistory(history) {
                 },
                 {
                     type: 'mrkdwn',
-                    text: `*Note:* ${record.note}`
+                    text: `*Note:* ${note}`
                 }
             ]
         };
