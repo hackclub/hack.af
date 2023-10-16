@@ -682,7 +682,7 @@ async function updateNotes(...args) {
 
     try {
         const res = await client.query(`
-            UPDATE "Links" SET Notes = $1 WHERE slug = $2 RETURNING *
+        UPDATE "Links" SET "Notes" = $1 WHERE "slug" = $2 RETURNING *
         `, [Note, slug]);
         if (res.rowCount > 0) {
             console.log("Note updated successfully");
