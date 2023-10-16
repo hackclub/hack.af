@@ -390,7 +390,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         },
         note: {
             run: updateNotes,
-            arguments: [1,2],
+            arguments: [-1],
             staffRequired: true,
             helpEntry: "Add or update notes to a slug.",
             usage: "/hack.af note [slug-name] [note-content]",
@@ -405,14 +405,21 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             text: 'Sorry, only staff can use this command',
             response_type: 'ephemeral'
         });
-    if (!commandEntry.arguments.includes(args.length - 1))
+
+        const acceptsVariableArguments = commandEntry.arguments.includes(-1);
+
+        if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
         return await respond({
-            text: `The command accepts ${commandEntry.arguments} arguments, but you supplied ${args.length - 1}. Please check your formatting.`,
+            text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting.`,
             response_type: 'ephemeral'
-        })
+        });
+
     try {
 
-        const result = await commandEntry.run(...args.slice(1));
+        const result = acceptsVariableArguments ? 
+        await commandEntry.run(...args.slice(1)) : 
+        await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
+
         await respondEphemeral(respond, result);
 
     } catch (error) {
