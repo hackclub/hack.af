@@ -130,24 +130,6 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             ]
         };
     }
-
-    async function getNotes(slug) {
-        try {
-            const res = await client.query(`
-                SELECT "Notes" FROM "Links" WHERE slug = $1 LIMIT 1
-            `, [slug]);
-    
-            if (res.rows.length > 0) {
-                return res.rows[0]["Notes"];
-            } else {
-                console.log(`No notes found for slug=${slug}`);
-                return '';
-            }
-        } catch (error) {
-            console.error("Database error in getNotes:", error);
-            throw error;
-        }
-    }
     
     async function searchSlug(searchTerm) {
         if (!searchTerm) {
@@ -722,6 +704,24 @@ async function updateNotes(...args) {
             text: `An error occurred while updating the note`,
             response_type: 'ephemeral'
         }
+    }
+}
+
+async function getNotes(slug) {
+    try {
+        const res = await client.query(`
+            SELECT "Notes" FROM "Links" WHERE slug = $1 LIMIT 1
+        `, [slug]);
+
+        if (res.rows.length > 0) {
+            return res.rows[0]["Notes"];
+        } else {
+            console.log(`No notes found for slug=${slug}`);
+            return '';
+        }
+    } catch (error) {
+        console.error("Database error in getNotes:", error);
+        throw error;
     }
 }
 
