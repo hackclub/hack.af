@@ -686,11 +686,14 @@ async function updateNotes(...args) {
         `, [Note, slug]);
         if (res.rowCount > 0) {
             console.log("Note updated successfully");
+            return 'Note updated successfully';
         } else {
             console.log("Slug not found");
+            return 'Slug not found';
         }
     } catch (error) {
         console.error("Database error:", error);
+        return 'An error occurred while updating the note';
     }
 }
 
