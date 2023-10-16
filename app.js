@@ -724,8 +724,8 @@ async function getSlugHistory(slug) {
 
                 await client.query(`
                     INSERT INTO "slughistory" (slug, new_url, action_type, note, version, changed_by, changed_at)
-                    VALUES ($1, $2, 'Created', 'Imported from Log', 1, '', CURRENT_TIMESTAMP);
-                `, [cleanSlug, newDestination,"Created","","1","",date]);
+                    VALUES ($1, $2, $3, $4, $5, $6, $7);
+                `, [cleanSlug, newDestination, 'Created', '', 1, '', date]);
 
                 res = await client.query(`
                     SELECT * FROM "slughistory" WHERE slug = $1 ORDER BY version DESC;
