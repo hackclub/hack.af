@@ -800,7 +800,11 @@ async function getSlugHistory(slug) {
         return res.rows;
     } catch (error) {
         console.error("SQL Error: ", error);
-        throw new Error("Error fetching slug history");
+        return {
+            text: 'No slug found or Error fetching slug history.',
+            response_type: 'ephemeral'
+
+        }
     }
 }
 
