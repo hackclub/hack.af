@@ -390,7 +390,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         },
         note: {
             run: updateNotes,
-            arguments: [0, 1],
+            arguments: [1,2],
             staffRequired: true,
             helpEntry: "Add or update notes to a slug.",
             usage: "/hack.af note [slug-name] [note-content]",
@@ -665,7 +665,14 @@ async function getHistory(slug) {
     return formatHistory(history);
 }
 
-async function updateNotes(slug, Note) {
+async function updateNotes(...args) {
+
+    console.log(args);
+    
+    const slug = args[1];
+
+    const Note = args.slice(2).join(' ');
+
     try {
         const res = await client.query(`
             UPDATE "Links" SET Notes = $1 WHERE slug = $2 RETURNING *
