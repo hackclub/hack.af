@@ -83,7 +83,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             console.log("Update successful:", updateRes.rows);
             try {
                 const existingNotes = await getNotes(slug);
-                await insertSlugHistory(slug, newDestination, 'Updated', existingNotes , command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Updated', existingNotes, command.user_id);
             } catch (error) {
                 console.error("Error in insertSlugHistory:", error);
             }
@@ -130,7 +130,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             ]
         };
     }
-    
+
     async function searchSlug(searchTerm) {
         if (!searchTerm) {
             return {
@@ -159,10 +159,10 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             let res = await client.query(exactQuery, [queryParams[0]]);
             let records = res.rows;
 
-        if (records.length === 0) {
-            res = await client.query(likeQuery, [queryParams[1]]);
-            records = res.rows;
-        }
+            if (records.length === 0) {
+                res = await client.query(likeQuery, [queryParams[1]]);
+                records = res.rows;
+            }
 
             if (records.length > 0) {
                 const blocks = records.map(record => {
@@ -340,7 +340,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             staffRequired: true,
             helpEntry: "Shorten a URL to a custom slug.",
             usage: "/hack.af set [slug-name] [destination-url]",
-            parameters: "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten."    
+            parameters: "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten."
         },
         search: {
             run: searchSlug,
@@ -407,9 +407,9 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             response_type: 'ephemeral'
         });
 
-        const acceptsVariableArguments = commandEntry.arguments.includes(-1);
+    const acceptsVariableArguments = commandEntry.arguments.includes(-1);
 
-        if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
+    if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
         return await respond({
             text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting.`,
             response_type: 'ephemeral'
@@ -417,13 +417,21 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     try {
 
-        const result = acceptsVariableArguments ? 
-        await commandEntry.run(...args.slice(1)) : 
-        await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
+        metrics.increment(`botcommands.${args[0]}.attempt`, 1);
+
+        const result = acceptsVariableArguments ?
+            await commandEntry.run(...args.slice(1)) :
+            await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
 
         await respondEphemeral(respond, result);
 
+        metrics.increment(`botcommands.${args[0]}.success`, 1);
+
+
     } catch (error) {
+        
+        metrics.increment(`botcommands.${args[0]}.error`, 1);
+
         await respond({
             text: `There was an error processing your request: ${error.message}`,
             response_type: 'ephemeral'
@@ -680,13 +688,13 @@ async function getMetrics(slug) {
 async function getHistory(slug) {
     const history = await getSlugHistory(slug);
     const note = await getNotes(slug)
-    return formatHistory(history,note);
+    return formatHistory(history, note);
 }
 
 async function updateNotes(...args) {
 
     console.log(args);
-    
+
     const slug = args[0];
 
     const Note = args.slice(1).join(' ');
@@ -807,7 +815,7 @@ async function getSlugHistory(slug) {
                 return {
                     text: `No records found for slug in 'Log': ${slug}`,
                     response_type: 'ephemeral'
-        
+
                 }
             }
         }
@@ -823,7 +831,7 @@ async function getSlugHistory(slug) {
     }
 }
 
-function formatHistory(history,note) {
+function formatHistory(history, note) {
 
     console.log("history: " + history);
 
