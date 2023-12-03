@@ -915,7 +915,8 @@ const isStaffMember = async (userId) => {
         'U02CWS020SD', // ALEX AKA ICE SPICE 2
         'U02UYFZQ0G0', // cheru :O
         'U041FQB8VK2', // thomas
-        'U01MPHKFZ7S' // Arv
+        'U01MPHKFZ7S', // Arv
+        'U0161JDSHGR' // sarthak
     ]);
     return allowedUsers.has(userId)
 };
