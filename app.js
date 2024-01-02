@@ -889,9 +889,29 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function recordChanges(date1, date2) {
-    const startDate = `${date1}T00:00:00`;
-    const endDate = `${date2}T23:59:59`;
+async function recordChanges(commandText) {
+    console.log('recordChanges: commandText:', commandText);
+    const args = commandText.split(' ').slice(1);
+    console.log('recordChanges: args:', args);
+    if (args.length < 2) {
+        console.error('recordChanges: Insufficient arguments provided');
+        return {
+            text: 'Please provide both start and end dates in the format YYYY-MM-DD.',
+            response_type: 'ephemeral'
+        };
+    }
+
+    const [date1, date2] = args;
+    if (!date1 || !date2) {
+        console.error(`recordChanges: One or both dates are undefined - date1: ${date1}, date2: ${date2}`);
+        return {
+            text: 'There was an error parsing the dates. Please use the format YYYY-MM-DD for both dates.',
+            response_type: 'ephemeral'
+        };
+    }
+
+    const startDate = `${date1}T00:00:00.000Z`;
+    const endDate = `${date2}T23:59:59.999Z`;
 
     try {
         const res = await client.query(`
@@ -934,7 +954,7 @@ async function recordChanges(date1, date2) {
             };
         }
     } catch (error) {
-        console.error('Error in recordChanges:', error);
+        console.error('recordChanges:', error);
         return {
             text: `An error occurred while retrieving the record.`,
             response_type: 'ephemeral'
