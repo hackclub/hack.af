@@ -891,7 +891,8 @@ function formatLogData(logData, clicks) {
 
 async function recordChanges(command) {
 
-    const args = command.text.split(' ');
+    const args = command.split(' ');
+    console.log(`recordChanges: args: ${args}`);
     const [date1, date2] = args;
     console.log(`recordChanges: date1: ${date1}, date2: ${date2}`);
 
