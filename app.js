@@ -396,6 +396,14 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             helpEntry: "Add or update notes to a slug.",
             usage: "/hack.af note [slug-name] [note-content]",
             parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
+        },
+        record: {
+            run: recordChanges,
+            arguments: [1,2],
+            staffRequired: true,
+            helpEntry: "List all changes to slugs within a given time period.",
+            usage: "/hack.af record [YYYY-MM-DD] [YYYY-MM-DD]",
+            parameters: "[YYYY-MM-DD]: The start date for the record search.\n[YYYY-MM-DD]: The end date for the record search."
         }
     }
 
@@ -879,6 +887,59 @@ function formatLogData(logData, clicks) {
         *URL:* ${logData?.["URL"] || 'N/A'}
         *Clicks:* ${clicks || 'N/A'}
     `;
+}
+
+async function recordChanges(date1, date2) {
+    const startDate = `${date1}T00:00:00`;
+    const endDate = `${date2}T23:59:59`;
+
+    try {
+        const res = await client.query(`
+            SELECT * FROM "slughistory"
+            WHERE changed_at >= $1 AND changed_at <= $2
+            ORDER BY changed_at DESC;
+        `, [startDate, endDate]);
+
+        if (res.rows.length > 0) {
+            const blocks = res.rows.map(record => ({
+                type: 'section',
+                fields: [
+                    {
+                        type: 'mrkdwn',
+                        text: `*Slug:* ${record.slug}`
+                    },
+                    {
+                        type: 'mrkdwn',
+                        text: `*Action:* ${record.action_type}`
+                    },
+                    {
+                        type: 'mrkdwn',
+                        text: `*Changed By:* ${record.changed_by}`
+                    },
+                    {
+                        type: 'mrkdwn',
+                        text: `*Date:* ${record.changed_at}`
+                    }
+                ]
+            }));
+
+            return {
+                text: `Changes from ${date1} to ${date2}:`,
+                blocks: blocks
+            };
+        } else {
+            return {
+                text: `No changes found between ${date1} and ${date2}.`,
+                response_type: 'ephemeral'
+            };
+        }
+    } catch (error) {
+        console.error('Error in recordChanges:', error);
+        return {
+            text: `An error occurred while retrieving the record.`,
+            response_type: 'ephemeral'
+        };
+    }
 }
 
 function getClientIp(req) {
