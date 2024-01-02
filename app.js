@@ -889,7 +889,10 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function recordChanges(date1, date2) {
+async function recordChanges(command) {
+
+    const args = command.text.split(' ');
+    const [date1, date2] = args;
     console.log(`recordChanges: date1: ${date1}, date2: ${date2}`);
 
     if (!date1 || !date2) {
