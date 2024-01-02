@@ -399,7 +399,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         },
         record: {
             run: recordChanges,
-            arguments: [2],
+            arguments: [2,3],
             staffRequired: true,
             helpEntry: "List all changes to slugs within a given time period.",
             usage: "/hack.af record [YYYY-MM-DD] [YYYY-MM-DD]",
