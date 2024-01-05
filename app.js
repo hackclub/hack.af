@@ -889,10 +889,7 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function recordChanges(date1,date2) {
-    
-    console.log(`recordChanges: date1: ${date1}, date2: ${date2}`);
-
+async function recordChanges(date1, date2) {
     if (!date1 || !date2) {
         console.error(`recordChanges: One or both dates are undefined - date1: ${date1}, date2: ${date2}`);
         return {
@@ -901,15 +898,17 @@ async function recordChanges(date1,date2) {
         };
     }
 
-    const startDate = `${date1}T00:00:00.000Z`;
-    const endDate = `${date2}T23:59:59.999Z`;
+    const startDate = new Date(date1).toISOString();
+    const endDate = new Date(date2);
+    endDate.setUTCHours(23, 59, 59, 999);
+    const endDateString = endDate.toISOString();
 
     try {
         const res = await client.query(`
             SELECT * FROM "slughistory"
             WHERE changed_at >= $1 AND changed_at <= $2
             ORDER BY changed_at DESC;
-        `, [startDate, endDate]);
+        `, [startDate, endDateString]);
 
         if (res.rows.length > 0) {
             const blocks = res.rows.map(record => ({
@@ -929,7 +928,7 @@ async function recordChanges(date1,date2) {
                     },
                     {
                         type: 'mrkdwn',
-                        text: `*Date:* ${record.changed_at}`
+                        text: `*Date:* ${new Date(record.changed_at).toISOString()}`
                     }
                 ]
             }));
