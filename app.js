@@ -911,31 +911,38 @@ async function recordChanges(date1, date2) {
         `, [startDate, endDateString]);
 
         if (res.rows.length > 0) {
-            const blocks = res.rows.map(record => ({
-                type: 'section',
-                fields: [
-                    {
-                        type: 'mrkdwn',
-                        text: `*Slug:* ${record.slug}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Action:* ${record.action_type}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Changed By:* ${record.changed_by}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Date:* ${new Date(record.changed_at).toISOString()}`
-                    }
-                ]
-            }));
+            const blocks = res.rows.map(record => {
+                const slugText = /^https?:\/\//.test(record.slug)
+                    ? record.slug
+                    : `hack.af/${record.slug}`;
+
+                return {
+                    type: 'section',
+                    fields: [
+                        {
+                            type: 'mrkdwn',
+                            text: `*Slug:* ${slugText}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Action:* ${record.action_type}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Changed By:* ${record.changed_by}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Date:* ${new Date(record.changed_at).toISOString()}`
+                        }
+                    ]
+                };
+            });
 
             return {
                 text: `Changes from ${date1} to ${date2}:`,
-                blocks: blocks
+                blocks: blocks,
+                response_type: 'ephemeral'
             };
         } else {
             return {
