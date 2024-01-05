@@ -397,13 +397,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             usage: "/hack.af note [slug-name] [note-content]",
             parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
         },
-        record: {
-            run: recordChanges,
+        audit: {
+            run: auditChanges,
             arguments: [2],
             staffRequired: true,
             helpEntry: "List all changes to slugs within a given time period.",
-            usage: "/hack.af record [YYYY-MM-DD] [YYYY-MM-DD]",
-            parameters: "[YYYY-MM-DD]: The start date for the record search.\n[YYYY-MM-DD]: The end date for the record search."
+            usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
+            parameters: "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search."
         }
     }
 
@@ -889,7 +889,7 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function recordChanges(date1, date2) {
+async function auditChanges(date1, date2) {
     if (!date1 || !date2) {
         console.error(`recordChanges: One or both dates are undefined - date1: ${date1}, date2: ${date2}`);
         return {
