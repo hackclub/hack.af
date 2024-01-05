@@ -397,13 +397,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             usage: "/hack.af note [slug-name] [note-content]",
             parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
         },
-        record: {
-            run: recordChanges,
-            arguments: [2,3],
+        audit: {
+            run: auditChanges,
+            arguments: [2],
             staffRequired: true,
             helpEntry: "List all changes to slugs within a given time period.",
-            usage: "/hack.af record [YYYY-MM-DD] [YYYY-MM-DD]",
-            parameters: "[YYYY-MM-DD]: The start date for the record search.\n[YYYY-MM-DD]: The end date for the record search."
+            usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
+            parameters: "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search."
         }
     }
 
@@ -889,13 +889,7 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function recordChanges(command) {
-
-    const args = command.split(' ');
-    console.log(`recordChanges: args: ${args}`);
-    const [date1, date2] = args;
-    console.log(`recordChanges: date1: ${date1}, date2: ${date2}`);
-
+async function auditChanges(date1, date2, limit = 50) {
     if (!date1 || !date2) {
         console.error(`recordChanges: One or both dates are undefined - date1: ${date1}, date2: ${date2}`);
         return {
@@ -904,42 +898,57 @@ async function recordChanges(command) {
         };
     }
 
-    const startDate = `${date1}T00:00:00.000Z`;
-    const endDate = `${date2}T23:59:59.999Z`;
+    const startDate = new Date(date1).toISOString();
+    const endDate = new Date(date2);
+    endDate.setUTCHours(23, 59, 59, 999);
+    const endDateString = endDate.toISOString();
 
     try {
         const res = await client.query(`
             SELECT * FROM "slughistory"
             WHERE changed_at >= $1 AND changed_at <= $2
-            ORDER BY changed_at DESC;
-        `, [startDate, endDate]);
+            ORDER BY changed_at DESC
+            LIMIT $3;
+        `, [startDate, endDateString, limit]);
 
         if (res.rows.length > 0) {
-            const blocks = res.rows.map(record => ({
-                type: 'section',
-                fields: [
-                    {
-                        type: 'mrkdwn',
-                        text: `*Slug:* ${record.slug}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Action:* ${record.action_type}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Changed By:* ${record.changed_by}`
-                    },
-                    {
-                        type: 'mrkdwn',
-                        text: `*Date:* ${record.changed_at}`
-                    }
-                ]
-            }));
+            const blocks = res.rows.map(record => {
+                const slugText = /^https?:\/\//.test(record.slug)
+                    ? record.slug
+                    : `hack.af/${record.slug}`;
+
+                return {
+                    type: 'section',
+                    fields: [
+                        {
+                            type: 'mrkdwn',
+                            text: `*Slug:* ${slugText}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Action:* ${record.action_type}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Changed By:* ${record.changed_by}`
+                        },
+                        {
+                            type: 'mrkdwn',
+                            text: `*Date:* ${new Date(record.changed_at).toISOString()}`
+                        }
+                    ]
+                };
+            });
+
+            let responseText = `Changes from ${date1} to ${date2}:`;
+            if (res.rows.length === limit) {
+                responseText += ` Only the latest ${limit} changes are shown. There might be more changes that are not displayed.`;
+            }
 
             return {
-                text: `Changes from ${date1} to ${date2}:`,
-                blocks: blocks
+                text: responseText,
+                blocks: blocks,
+                response_type: 'ephemeral'
             };
         } else {
             return {
