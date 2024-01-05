@@ -889,7 +889,7 @@ function formatLogData(logData, clicks) {
     `;
 }
 
-async function auditChanges(date1, date2) {
+async function auditChanges(date1, date2, limit = 50) {
     if (!date1 || !date2) {
         console.error(`recordChanges: One or both dates are undefined - date1: ${date1}, date2: ${date2}`);
         return {
@@ -907,8 +907,9 @@ async function auditChanges(date1, date2) {
         const res = await client.query(`
             SELECT * FROM "slughistory"
             WHERE changed_at >= $1 AND changed_at <= $2
-            ORDER BY changed_at DESC;
-        `, [startDate, endDateString]);
+            ORDER BY changed_at DESC
+            LIMIT $3;
+        `, [startDate, endDateString, limit]);
 
         if (res.rows.length > 0) {
             const blocks = res.rows.map(record => {
@@ -939,8 +940,13 @@ async function auditChanges(date1, date2) {
                 };
             });
 
+            let responseText = `Changes from ${date1} to ${date2}:`;
+            if (res.rows.length === limit) {
+                responseText += ` Only the latest ${limit} changes are shown. There might be more changes that are not displayed.`;
+            }
+
             return {
-                text: `Changes from ${date1} to ${date2}:`,
+                text: responseText,
                 blocks: blocks,
                 response_type: 'ephemeral'
             };
