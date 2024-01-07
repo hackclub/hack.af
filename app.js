@@ -442,7 +442,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         if (commandEntry.run === getGeolocation) {
             result = await getGeolocation(command);
         } else {
-            const result = acceptsVariableArguments ?
+            result = acceptsVariableArguments ?
                 await commandEntry.run(...args.slice(1)) :
                 await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
         }
