@@ -985,37 +985,43 @@ async function auditChanges(date1, date2, limit = 50) {
 
 async function getGeolocation(command) {
     try {
-        const args = command.text.split(' ');
-        const slug = args[1];
+        const slug = command.text.split(' ')[1];
         const queryResult = await client.query(`
             SELECT "Visitor IPs" FROM "Links" WHERE slug = $1
         `, [slug]);
 
         if (queryResult.rows.length > 0) {
             const visitorIPs = queryResult.rows[0]["Visitor IPs"];
-            const filePath = await createCSVFile(visitorIPs, command.text);
+            const filePath = await createCSVFile(visitorIPs, slug);
 
-            const result = await SlackApp.client.files.upload({
-                channels: command.channel_id,
+            const dmResponse = await SlackApp.client.conversations.open({
+                token: process.env.SLACK_BOT_TOKEN,
+                users: command.user_id
+            });
+
+            await SlackApp.client.files.upload({
+                channels: dmResponse.channel.id,
                 file: createReadStream(filePath),
                 filename: path.basename(filePath),
                 token: process.env.SLACK_BOT_TOKEN
             });
 
+            await insertSlugHistory(slug, 'Geolocation data retrieved', 'Used', '', command.user_id);
+
             return {
-                text: `Uploaded the geolocation data for slug ${command.text}.`,
+                text: `Uploaded the geolocation data for slug ${slug}.`,
                 response_type: 'ephemeral'
             };
         } else {
             return {
-                text: `No geolocation data found for slug ${command.text}.`,
+                text: `No geolocation data found for slug ${slug}.`,
                 response_type: 'ephemeral'
             };
         }
     } catch (error) {
         console.error('Error in getGeolocation:', error);
         return {
-            text: `An error occurred while retrieving geolocation data for slug ${command.text}.`,
+            text: `An error occurred while retrieving geolocation data for slug ${slug}.`,
             response_type: 'ephemeral'
         };
     }
