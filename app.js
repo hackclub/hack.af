@@ -1009,7 +1009,7 @@ async function getGeolocation(command) {
             await insertSlugHistory(slug, 'Geolocation data retrieved', 'Used', '', command.user_id);
 
             return {
-                text: `Uploaded the geolocation data for slug ${slug}.`,
+                text: `The geolocation data for slug ${slug} has been sent to your direct messages.`,
                 response_type: 'ephemeral'
             };
         } else {
