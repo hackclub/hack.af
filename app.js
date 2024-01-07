@@ -439,6 +439,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         metrics.increment(`botcommands.${args[0]}.attempt`, 1);
 
         let result;
+        console.log("Command entry:", commandEntry);
         if (commandEntry.run === getGeolocation) {
             result = await getGeolocation(command);
         } else {
