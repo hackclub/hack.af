@@ -12,6 +12,9 @@ const { App, LogLevel } = bolt;
 import responseTime from "response-time";
 import metrics from './metrics.js';
 import { LRUCache } from 'lru-cache';
+import { writeFile } from 'fs/promises';
+import { createReadStream } from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -404,6 +407,14 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             helpEntry: "List all changes to slugs within a given time period.",
             usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
             parameters: "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search."
+        },
+        geolocation: {
+            run: getGeolocation,
+            arguments: [1],
+            staffRequired: true,
+            helpEntry: "Retrieve IP addresses for a specific slug.",
+            usage: "/hack.af geolocation [slug-name]",
+            parameters: "[slug-name]: The slug you want to retrieve IP addresses for."
         }
     }
 
@@ -427,9 +438,14 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
         metrics.increment(`botcommands.${args[0]}.attempt`, 1);
 
-        const result = acceptsVariableArguments ?
-            await commandEntry.run(...args.slice(1)) :
-            await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
+        let result;
+        if (commandEntry.run === getGeolocation) {
+            result = await getGeolocation(command);
+        } else {
+            const result = acceptsVariableArguments ?
+                await commandEntry.run(...args.slice(1)) :
+                await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
+        }
 
         await respondEphemeral(respond, result);
 
@@ -437,7 +453,6 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
 
     } catch (error) {
-        
         metrics.increment(`botcommands.${args[0]}.error`, 1);
 
         await respond({
@@ -963,6 +978,52 @@ async function auditChanges(date1, date2, limit = 50) {
             response_type: 'ephemeral'
         };
     }
+}
+
+async function getGeolocation(command) {
+    try {
+        console.log(command.text)
+        console.log(command.channel_id)
+        console.log(command)
+        const queryResult = await client.query(`
+            SELECT "Visitor IPs" FROM "Links" WHERE slug = $1
+        `, [command.text]);
+
+        if (queryResult.rows.length > 0) {
+            const visitorIPs = queryResult.rows[0]["Visitor IPs"];
+            const filePath = await createCSVFile(visitorIPs, command.text);
+
+            const result = await SlackApp.client.files.upload({
+                channels: command.channel_id,
+                file: createReadStream(filePath),
+                filename: path.basename(filePath),
+                token: process.env.SLACK_BOT_TOKEN
+            });
+
+            return {
+                text: `Uploaded the geolocation data for slug ${command.text}.`,
+                response_type: 'ephemeral'
+            };
+        } else {
+            return {
+                text: `No geolocation data found for slug ${command.text}.`,
+                response_type: 'ephemeral'
+            };
+        }
+    } catch (error) {
+        console.error('Error in getGeolocation:', error);
+        return {
+            text: `An error occurred while retrieving geolocation data for slug ${command.text}.`,
+            response_type: 'ephemeral'
+        };
+    }
+}
+
+async function createCSVFile(visitorIPs, slug) {
+    const filePath = path.join(__dirname, `${slug}_visitor_IPs.csv`);
+    const csvContent = visitorIPs.map(ip => `"${ip}"`).join('\n');
+    await writeFile(filePath, csvContent);
+    return filePath;
 }
 
 function getClientIp(req) {
