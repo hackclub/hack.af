@@ -983,12 +983,11 @@ async function auditChanges(date1, date2, limit = 50) {
 
 async function getGeolocation(command) {
     try {
-        console.log(command.text)
-        console.log(command.channel_id)
-        console.log(command)
+        const args = command.text.split(' ');
+        const slug = args[1];
         const queryResult = await client.query(`
             SELECT "Visitor IPs" FROM "Links" WHERE slug = $1
-        `, [command.text]);
+        `, [slug]);
 
         if (queryResult.rows.length > 0) {
             const visitorIPs = queryResult.rows[0]["Visitor IPs"];
