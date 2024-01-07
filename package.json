@@ -18,7 +18,8 @@
     "node-statsd": "^0.1.1",
     "path": "^0.12.7",
     "pg": "^8.11.0",
-    "response-time": "^2.3.2"
+    "response-time": "^2.3.2",
+    "url": "^0.11.3"
   },
   "scripts": {
     "start": "node app.js",
