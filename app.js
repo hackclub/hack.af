@@ -1072,7 +1072,8 @@ const isStaffMember = async (userId) => {
         'U0161JDSHGR', // sarthak
         'U04MDFEBL2U', // alex s
         'U019PF0KNE6', // belle
-        'U045B4BQ2T0' // dieter
+        'U045B4BQ2T0', // dieter
+        'U04BBP8H9FA' // shawn
     ]);
     return allowedUsers.has(userId)
 };
