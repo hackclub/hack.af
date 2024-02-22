@@ -1056,15 +1056,15 @@ function forceHttps(req, res, next) {
 
 const isStaffMember = async (userId) => {
     const allowedUsers = new Set([
-        'U04QH1TTMBP', //graham
-        'U0C7B14Q3',   //max
-        'U0266FRGP',   //zrl
-        'U032A2PMSE9', //kara
-        'USNPNJXNX',   //sam
-        'U022XFD2TML', //ian
-        'U013B6CPV62', //caleb
-        'U014E8132DB',  //shubham panth
-        'U03DFNYGPCN', //MR. MALTED WHEATIES ESQ.
+        'U04QH1TTMBP', // graham
+        'U0C7B14Q3',   // max
+        'U0266FRGP',   // zrl
+        'U032A2PMSE9', // kara
+        'USNPNJXNX',   // sam
+        'U022XFD2TML', // ian
+        'U013B6CPV62', // caleb
+        'U014E8132DB', // shubham panth
+        'U03DFNYGPCN', // MR. MALTED WHEATIES ESQ.
         'U02CWS020SD', // ALEX AKA ICE SPICE 2
         'U02UYFZQ0G0', // cheru :O
         'U041FQB8VK2', // thomas
@@ -1073,7 +1073,8 @@ const isStaffMember = async (userId) => {
         'U04MDFEBL2U', // alex s
         'U019PF0KNE6', // belle
         'U045B4BQ2T0', // dieter
-        'U04BBP8H9FA' // shawn
+        'U04BBP8H9FA', // shawn
+        'UN79ZPYMQ'    // gary
     ]);
     return allowedUsers.has(userId)
 };
