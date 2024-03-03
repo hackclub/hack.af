@@ -487,7 +487,7 @@ app.get("/glitch", (req, res) => {
 });
 
 app.get("/gib/:org", (req, res) => {
-    res.redirect(302, "https://bank.hackclub.com/donations/start/" + req.params.org);
+    res.redirect(302, "https://hcb.hackclub.com/donations/start/" + req.params.org);
 });
 
 app.get("/*", (req, res) => {
