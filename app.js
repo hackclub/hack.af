@@ -986,13 +986,20 @@ async function auditChanges(date1, date2, limit = 50) {
 async function getGeolocation(command) {
     try {
         const slug = command.text.split(' ')[1];
-        const queryResult = await client.query(`
-            SELECT "Visitor IPs" FROM "Links" WHERE slug = $1
-        `, [slug]);
-
+        const queryResult = await client.query(
+            `SELECT "Timestamp", "Client IP" FROM "Log" WHERE "Slug" = $1 ORDER BY "Timestamp" DESC;`,
+            [slug]
+        );
         if (queryResult.rows.length > 0) {
-            const visitorIPs = queryResult.rows[0]["Visitor IPs"];
-            const filePath = await createCSVFile(visitorIPs, slug);
+            
+            const data = queryResult.rows;
+            let csvData = 'timestamp:ip\n';
+            
+            data.forEach(row => {
+                csvData += `${row.Timestamp}:${row['Client IP']}\n`;
+            });
+
+            const filePath = await createCSVFile(csvData, slug);
 
             const dmResponse = await SlackApp.client.conversations.open({
                 token: process.env.SLACK_BOT_TOKEN,
@@ -1027,10 +1034,9 @@ async function getGeolocation(command) {
     }
 }
 
-async function createCSVFile(visitorIPs, slug) {
-    const filePath = path.join(__dirname, `${slug}_visitor_IPs.csv`);
-    const csvContent = visitorIPs.map(ip => `"${ip}"`).join('\n');
-    await writeFile(filePath, csvContent);
+async function createCSVFile(csvData, slug) {
+    const filePath = path.join(__dirname, `${slug}_visitor_IPs_Timestamp.csv`);
+    await writeFile(filePath, csvData); 
     return filePath;
 }
 
