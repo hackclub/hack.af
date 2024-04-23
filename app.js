@@ -993,6 +993,7 @@ async function getGeolocation(command) {
         if (queryResult.rows.length > 0) {
             
             const data = queryResult.rows;
+
             let csvData = 'timestamp,ip\n';
             
             data.forEach(row => {
