@@ -993,10 +993,11 @@ async function getGeolocation(command) {
         if (queryResult.rows.length > 0) {
             
             const data = queryResult.rows;
-            let csvData = 'timestamp:ip\n';
+
+            let csvData = 'timestamp,ip\n';
             
             data.forEach(row => {
-                csvData += `${row.Timestamp}:${row['Client IP']}\n`;
+                csvData += `${row.Timestamp},${row['Client IP']}\n`;
             });
 
             const filePath = await createCSVFile(csvData, slug);
