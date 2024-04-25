@@ -58,22 +58,13 @@ app.use(responseTime(function (req, res, time) {
     metrics.increment(codeStatKey, 1)
 }))
 
-function escapeMarkdown(text) {
-    const markdownSpecialChars = ['\\', '*', '_', '`', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!'];
-    markdownSpecialChars.forEach(char => {
-        const escapedChar = `\\${char}`;
-        text = text.replace(new RegExp(`\\${char}`, 'g'), escapedChar);
-    });
-    return text;
-}
-
 SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
     const isStaff = await isStaffMember(command.user_id);
     async function changeSlug(slug, newDestination) {
-        const safeDestination = escapeMarkdown(newDestination);
+        newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
         let existingRes;
         try {
             existingRes = await client.query(
@@ -92,18 +83,18 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             try {
                 await client.query(
                     `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
-                    [safeDestination, slug]
+                    [newDestination, slug]
                 );
 
-                await insertSlugHistory(slug, safeDestination, 'Updated', '', command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
                 return {
-                    text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${safeDestination}.`,
+                    text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${safeDestination}.`,
+                                text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                             },
                         },
                         {
@@ -126,19 +117,19 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 await client.query(
                     `INSERT INTO "Links" ("Record Id", slug, destination) 
                     VALUES ($1, $2, $3)`,
-                    [Math.random().toString(36).substring(2, 15), slug, safeDestination]
+                    [Math.random().toString(36).substring(2, 15), slug, newDestination]
                 );
 
-                await insertSlugHistory(slug, safeDestination, 'Created', '', command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
 
                 return {
-                    text: `Created! Now hack.af/${slug} goes to ${safeDestination}.`,
+                    text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Created! Now hack.af/${slug} goes to ${safeDestination}.`,
+                                text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
                             },
                         },
                         {
