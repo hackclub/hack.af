@@ -58,18 +58,13 @@ app.use(responseTime(function (req, res, time) {
     metrics.increment(codeStatKey, 1)
 }))
 
-
 SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
     const isStaff = await isStaffMember(command.user_id);
-
     async function changeSlug(slug, newDestination) {
-        cache.delete(slug);
-
         newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
-
         let existingRes;
         try {
             existingRes = await client.query(
@@ -84,25 +79,22 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         const isUpdate = existingRes && existingRes.rowCount > 0;
 
         if (isUpdate) {
-            let updateRes;
+            const lastDestination = decodeURIComponent(existingRes.rows[0].destination);
             try {
-                updateRes = await client.query(
-                    `
-                    UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
-                    `,
+                await client.query(
+                    `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
                     [newDestination, slug]
                 );
 
-                const existingNotes = await getNotes(slug);
-                await insertSlugHistory(slug, newDestination, 'Updated', existingNotes, command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
                 return {
-                    text: `URL for slug ${slug} successfully updated to ${decodeURIComponent(newDestination)}.`,
+                    text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `URL for slug *${slug}* successfully updated to *${decodeURIComponent(newDestination)}*.`,
+                                text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                             },
                         },
                         {
@@ -121,45 +113,36 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 throw new Error("Error updating the slug");
             }
         } else {
-
-            let insertRes;
             try {
-                const recordId = Math.random().toString(36).substring(2, 15);
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-
-                insertRes = await client.query(
-                    `
-                    INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                    `,
-                    [recordId, slug, newDestination, [], 0, qrUrl, [], '']
+                await client.query(
+                    `INSERT INTO "Links" ("Record Id", slug, destination) 
+                    VALUES ($1, $2, $3)`,
+                    [Math.random().toString(36).substring(2, 15), slug, newDestination]
                 );
 
-                if (insertRes.rowCount > 0) {
-                    await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
+                await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
 
-                    return {
-                        text: `URL for slug ${slug} successfully created with destination ${decodeURIComponent(newDestination)}.`,
-                        blocks: [
-                            {
-                                type: 'section',
-                                text: {
+                return {
+                    text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                            },
+                        },
+                        {
+                            type: 'context',
+                            elements: [
+                                {
                                     type: 'mrkdwn',
-                                    text: `URL for slug *${slug}* successfully created with destination *${decodeURIComponent(newDestination)}*.`,
+                                    text: `Request made by <@${command.user_id}>`,
                                 },
-                            },
-                            {
-                                type: 'context',
-                                elements: [
-                                    {
-                                        type: 'mrkdwn',
-                                        text: `Request made by <@${command.user_id}>`,
-                                    },
-                                ],
-                            },
-                        ],
-                    };
-                }
+                            ],
+                        },
+                    ],
+                };
             } catch (error) {
                 console.error("Database error during INSERT:", error);
                 throw new Error("Error creating the slug");
