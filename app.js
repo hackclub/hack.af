@@ -91,7 +91,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             const lastDestination = decodeURIComponent(existingRes.rows[0].destination);
             try {
                 await client.query(
-                    `UPDATE "Links" SET destination = $1, "updated_at" = NOW() WHERE slug = $2`,
+                    `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
                     [safeDestination, slug]
                 );
 
