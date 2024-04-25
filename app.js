@@ -68,73 +68,104 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     async function changeSlug(slug, newDestination) {
         cache.delete(slug);
 
-        // if record doesn't already exist
-        const recordId = Math.random().toString(36).substring(2, 15);
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
-
         newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
 
-        let updateRes;
+        let existingRes;
         try {
-            console.log(`Debug: Updating destination for slug=${slug}, newDestination=${newDestination}`);
-            updateRes = await client.query(`
-                UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
-            `, [newDestination, slug]);
+            existingRes = await client.query(
+                `SELECT * FROM "Links" WHERE slug = $1`,
+                [slug]
+            );
         } catch (error) {
-            console.error("Database error in UPDATE:", error);
+            console.error("Database error during SELECT:", error);
+            throw new Error("Error checking for existing slug");
         }
 
-        if (updateRes && updateRes.rowCount > 0) {
-            console.log("Update successful:", updateRes.rows);
+        const isUpdate = existingRes && existingRes.rowCount > 0;
+
+        if (isUpdate) {
+            let updateRes;
             try {
+                updateRes = await client.query(
+                    `
+                    UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
+                    `,
+                    [newDestination, slug]
+                );
+
                 const existingNotes = await getNotes(slug);
                 await insertSlugHistory(slug, newDestination, 'Updated', existingNotes, command.user_id);
+                return {
+                    text: `URL for slug ${slug} successfully updated to ${decodeURIComponent(newDestination)}.`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `URL for slug *${slug}* successfully updated to *${decodeURIComponent(newDestination)}*.`,
+                            },
+                        },
+                        {
+                            type: 'context',
+                            elements: [
+                                {
+                                    type: 'mrkdwn',
+                                    text: `Request made by <@${command.user_id}>`,
+                                },
+                            ],
+                        },
+                    ],
+                };
             } catch (error) {
-                console.error("Error in insertSlugHistory:", error);
+                console.error("Database error during UPDATE:", error);
+                throw new Error("Error updating the slug");
             }
         } else {
-            console.log("No rows updated. Attempting to insert.");
+
             let insertRes;
             try {
-                console.log(`Debug: Inserting new row for recordId=${recordId}, slug=${slug}, newDestination=${newDestination}, qrUrl=${qrUrl}`);
-                insertRes = await client.query(`
+                const recordId = Math.random().toString(36).substring(2, 15);
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
+
+                insertRes = await client.query(
+                    `
                     INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                `, [recordId, slug, newDestination, [], 0, qrUrl, [], '']);
+                    `,
+                    [recordId, slug, newDestination, [], 0, qrUrl, [], '']
+                );
+
                 if (insertRes.rowCount > 0) {
-                    console.log("Insert successful:", insertRes.rows);
-                    try {
-                        await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
-                    } catch (error) {
-                        console.error("Error in insertSlugHistory:", error);
-                    }
+                    await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
+
+                    return {
+                        text: `URL for slug ${slug} successfully created with destination ${decodeURIComponent(newDestination)}.`,
+                        blocks: [
+                            {
+                                type: 'section',
+                                text: {
+                                    type: 'mrkdwn',
+                                    text: `URL for slug *${slug}* successfully created with destination *${decodeURIComponent(newDestination)}*.`,
+                                },
+                            },
+                            {
+                                type: 'context',
+                                elements: [
+                                    {
+                                        type: 'mrkdwn',
+                                        text: `Request made by <@${command.user_id}>`,
+                                    },
+                                ],
+                            },
+                        ],
+                    };
                 }
             } catch (error) {
-                console.error("Database error in INSERT:", error);
+                console.error("Database error during INSERT:", error);
+                throw new Error("Error creating the slug");
             }
         }
-        return {
-            text: `URL for slug ${slug} successfully changed to ${decodeURIComponent(newDestination)}.`,
-            blocks: [
-                {
-                    type: 'section',
-                    text: {
-                        type: 'mrkdwn',
-                        text: `URL for slug *${slug}* successfully changed to *${decodeURIComponent(newDestination)}*.`
-                    }
-                },
-                {
-                    type: 'context',
-                    elements: [
-                        {
-                            type: 'mrkdwn',
-                            text: `Request made by <@${command.user_id}>`
-                        }
-                    ]
-                }
-            ]
-        };
-    }
+    }    
 
     async function searchSlug(searchTerm) {
         if (!searchTerm) {
