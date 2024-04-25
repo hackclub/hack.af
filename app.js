@@ -58,6 +58,14 @@ app.use(responseTime(function (req, res, time) {
     metrics.increment(codeStatKey, 1)
 }))
 
+function escapeMarkdown(text) {
+    const markdownSpecialChars = ['\\', '*', '_', '`', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!'];
+    markdownSpecialChars.forEach(char => {
+        const escapedChar = `\\${char}`;
+        text = text.replace(new RegExp(`\\${char}`, 'g'), escapedChar);
+    });
+    return text;
+}
 
 SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
@@ -69,6 +77,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         cache.delete(slug);
 
         newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
+        const safeDestination = escapeMarkdown(decodeURIComponent(newDestination));
 
         let existingRes;
         try {
@@ -90,19 +99,19 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                     `
                     UPDATE "Links" SET destination = $1 WHERE slug = $2 RETURNING *
                     `,
-                    [newDestination, slug]
+                    [safeDestination, slug]
                 );
 
                 const existingNotes = await getNotes(slug);
-                await insertSlugHistory(slug, newDestination, 'Updated', existingNotes, command.user_id);
+                await insertSlugHistory(slug, safeDestination, 'Updated', existingNotes, command.user_id);
                 return {
-                    text: `URL for slug ${slug} successfully updated to ${decodeURIComponent(newDestination)}.`,
+                    text: `URL for slug *${escapeMarkdown(slug)}* successfully updated to ${safeDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `URL for slug *${slug}* successfully updated to *${decodeURIComponent(newDestination)}*.`,
+                                text: `URL for slug *${escapeMarkdown(slug)}* successfully updated to *${safeDestination}*.`,
                             },
                         },
                         {
@@ -132,20 +141,20 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                     INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     `,
-                    [recordId, slug, newDestination, [], 0, qrUrl, [], '']
+                    [recordId, slug, safeDestination, [], 0, qrUrl, [], '']
                 );
 
                 if (insertRes.rowCount > 0) {
                     await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
 
                     return {
-                        text: `URL for slug ${slug} successfully created with destination ${decodeURIComponent(newDestination)}.`,
+                        text: `URL for slug *${escapeMarkdown(slug)}* successfully created with destination *${safeDestination}*.`,
                         blocks: [
                             {
                                 type: 'section',
                                 text: {
                                     type: 'mrkdwn',
-                                    text: `URL for slug *${slug}* successfully created with destination *${decodeURIComponent(newDestination)}*.`,
+                                    text: `URL for slug *${escapeMarkdown(slug)}* successfully created with destination *${safeDestination}*.`,
                                 },
                             },
                             {
