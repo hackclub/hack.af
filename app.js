@@ -439,7 +439,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     if (commandEntry.staffRequired && !isStaff)
         return await respond({
-            text: 'Sorry, only staff can use this command. Command run: \`${originalCommand}\`',
+            text: 'Sorry, only staff can use this command. \`${originalCommand}\`',
             response_type: 'ephemeral'
         });
 
@@ -447,7 +447,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
         return await respond({
-            text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting. Command run: \`${originalCommand}\``,
+            text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
 
@@ -470,7 +470,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             elements: [
                 {
                     type: 'mrkdwn',
-                    text: `Command run: \`${originalCommand}\``
+                    text: `\`${originalCommand}\``
                 }
             ]
         });
@@ -483,7 +483,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         metrics.increment(`botcommands.${args[0]}.error`, 1);
 
         await respond({
-            text: `There was an error processing your request: ${error.message}. Command run: \`${originalCommand}\``,
+            text: `There was an error processing your request: ${error.message}. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
         console.error(error);
