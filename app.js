@@ -62,6 +62,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
+    const originalCommand = `${command.command} ${command.text}`;
     const isStaff = await isStaffMember(command.user_id);
     async function changeSlug(slug, newDestination) {
         newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
@@ -438,7 +439,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     if (commandEntry.staffRequired && !isStaff)
         return await respond({
-            text: 'Sorry, only staff can use this command',
+            text: `Sorry, only staff can use this command. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
 
@@ -446,7 +447,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
         return await respond({
-            text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting.`,
+            text: `The command accepts ${commandEntry.arguments.join(', ')} arguments, but you supplied ${args.length - 1}. Please check your formatting. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
 
@@ -464,6 +465,15 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
         }
 
+        result.blocks.push({
+            type: 'context',
+            elements: [
+                {
+                    type: 'mrkdwn',
+                    text: `\`${originalCommand}\``
+                }
+            ]
+        });
         await respondEphemeral(respond, result);
 
         metrics.increment(`botcommands.${args[0]}.success`, 1);
@@ -473,7 +483,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         metrics.increment(`botcommands.${args[0]}.error`, 1);
 
         await respond({
-            text: `There was an error processing your request: ${error.message}`,
+            text: `There was an error processing your request: ${error.message}. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
         console.error(error);
