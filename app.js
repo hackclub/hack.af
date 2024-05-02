@@ -62,7 +62,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
-    const originalCommand = `/${command.command} ${command.text}`;
+    const originalCommand = `${command.command} ${command.text}`;
     const isStaff = await isStaffMember(command.user_id);
     async function changeSlug(slug, newDestination) {
         newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, '');
@@ -439,7 +439,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     if (commandEntry.staffRequired && !isStaff)
         return await respond({
-            text: 'Sorry, only staff can use this command. \`${originalCommand}\`',
+            text: `Sorry, only staff can use this command. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
 
