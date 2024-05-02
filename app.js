@@ -462,8 +462,15 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             result = acceptsVariableArguments ?
                 await commandEntry.run(...args.slice(1)) :
                 await commandEntry.run(...args.slice(1, commandEntry.arguments[0] + 1));
-        }
 
+            result.blocks.push({
+                type: 'context',
+                elements: [{
+                    type: 'mrkdwn',
+                    text: `\`${originalCommand}\``
+                }]
+            });
+        }
         await respondEphemeral(respond, result);
 
         metrics.increment(`botcommands.${args[0]}.success`, 1);
