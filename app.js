@@ -59,6 +59,16 @@ app.use(responseTime(function (req, res, time) {
 }))
 
 SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
+        await ack();
+
+        return await respond({
+            text: 'Hack.af is depricated. Please use /hack.club instead.',
+            response_type: 'ephemeral'
+        });
+}
+
+
+SlackApp.command("/hack.club", async ({ command, ack, respond }) => {
     await ack();
 
     const args = command.text.split(' ');
@@ -88,13 +98,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
                 await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
                 return {
-                    text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+                    text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+                                text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                             },
                         },
                         {
@@ -123,13 +133,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
 
                 return {
-                    text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                    text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                                text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
                             },
                         },
                         {
@@ -235,19 +245,19 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         let slug = Math.random().toString(36).substring(7);
         const recordId = Math.random().toString(36).substring(2, 15);
 
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.club/${slug}`;
 
         await client.query(`
       INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']);
 
-        let msg = `Your short URL: https://hack.af/${slug} -> ${url}`;
-        let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>* -> ${url}`;
+        let msg = `Your short URL: https://hack.club/${slug} -> ${url}`;
+        let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
 
         if (isStaff) {
-            msg += '\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.';
-            blockMsg += '\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.';
+            msg += '\nTo change the destination URL, use `/hack.club set [slug] [new destination URL]`.';
+            blockMsg += '\nTo change the destination URL, use `/hack.club set [slug] [new destination URL]`.';
         }
 
         return {
@@ -315,7 +325,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     async function showHelp(commandName) {
         return {
-            text: `Hack.af help`,
+            text: `Hack.club help`,
             blocks: [
                 {
                     type: 'section',
@@ -358,7 +368,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [2],
             staffRequired: true,
             helpEntry: "Shorten a URL to a custom slug.",
-            usage: "/hack.af set [slug-name] [destination-url]",
+            usage: "/hack.club set [slug-name] [destination-url]",
             parameters: "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten."
         },
         search: {
@@ -366,15 +376,15 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: false,
             helpEntry: "Search for a particular slug in the database.",
-            usage: "/hack.af search [slug-name]",
+            usage: "/hack.club search [slug-name]",
             parameters: "[slug-name]: The slug you want to search for."
         },
         shorten: {
             run: shortenUrl,
             arguments: [1],
             staffRequired: false,
-            helpEntry: "Shorten any URL to a random hack.af link.",
-            usage: "/hack.af shorten [url]",
+            helpEntry: "Shorten any URL to a random hack.club link.",
+            usage: "/hack.club shorten [url]",
             parameters: "[url]: The URL you want to shorten."
         },
         'delete': {
@@ -382,7 +392,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Delete a slug from the database.",
-            usage: "/hack.af delete [slug-name]",
+            usage: "/hack.club delete [slug-name]",
             parameters: "[slug-name]: The slug you want to delete."
         },
         help: {
@@ -390,14 +400,14 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [0, 1],
             staffRequired: false,
             helpEntry: "Show help documentation.",
-            usage: "/hack.af help"
+            usage: "/hack.club help"
         },
         metrics: {
             run: getMetrics,
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve and display metrics for a specific slug.",
-            usage: "/hack.af metrics [slug-name]",
+            usage: "/hack.club metrics [slug-name]",
             parameters: "[slug-name]: The slug you want to retrieve metrics for."
         },
         history: {
@@ -405,7 +415,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve history of slugs over time.",
-            usage: "/hack.af history [slug-name]",
+            usage: "/hack.club history [slug-name]",
             parameters: "[slug-name]: The slug you want to retrieve history of."
         },
         note: {
@@ -413,7 +423,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [-1],
             staffRequired: true,
             helpEntry: "Add or update notes to a slug.",
-            usage: "/hack.af note [slug-name] [note-content]",
+            usage: "/hack.club note [slug-name] [note-content]",
             parameters: "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note."
         },
         audit: {
@@ -421,7 +431,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [2],
             staffRequired: true,
             helpEntry: "List all changes to slugs within a given time period.",
-            usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
+            usage: "/hack.club audit [YYYY-MM-DD] [YYYY-MM-DD]",
             parameters: "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search."
         },
         geolocation: {
@@ -429,7 +439,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             arguments: [1],
             staffRequired: true,
             helpEntry: "Retrieve IP addresses for a specific slug.",
-            usage: "/hack.af geolocation [slug-name]",
+            usage: "/hack.club geolocation [slug-name]",
             parameters: "[slug-name]: The slug you want to retrieve IP addresses for."
         }
     }
@@ -947,7 +957,7 @@ async function auditChanges(date1, date2, limit = 50) {
             const blocks = res.rows.map(record => {
                 const slugText = /^https?:\/\//.test(record.slug)
                     ? record.slug
-                    : `hack.af/${record.slug}`;
+                    : `hack.club/${record.slug}`;
 
                 return {
                     type: 'section',
