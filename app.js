@@ -162,24 +162,26 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
         let searchQuery = "";
         let queryParams = [];
+        const similarityThreshold = 0.2;
 
         if (isURL) {
             searchQuery = `
                 SELECT * FROM "Links"
                 WHERE destination ILIKE $1
+                AND similarity(destination, $2) > $3
                 ORDER BY similarity(destination, $2) DESC
                 LIMIT 50;
             `;
-            queryParams = [`%${encodeURIComponent(searchTerm)}%`, encodeURIComponent(searchTerm)];
+            queryParams = [`%${encodeURIComponent(searchTerm)}%`, encodeURIComponent(searchTerm), similarityThreshold];
         } else {
             searchQuery = `
                 SELECT * FROM "Links"
-                WHERE slug ILIKE $1
-                OR destination ILIKE $1
-                ORDER BY similarity(slug, $2) DESC, similarity(destination, $2) DESC
+                WHERE (slug ILIKE $1 OR destination ILIKE $1)
+                AND (similarity(slug, $2) > $3 OR similarity(destination, $2) > $3)
+                ORDER BY GREATEST(similarity(slug, $2), similarity(destination, $2)) DESC
                 LIMIT 50;
             `;
-            queryParams = [`%${searchTerm}%`, searchTerm];
+            queryParams = [`%${searchTerm}%`, searchTerm, similarityThreshold];
         }
 
         try {
