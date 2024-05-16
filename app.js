@@ -160,29 +160,31 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         }
 
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
-
-        let exactQuery = "";
-        let likeQuery = "";
+        let searchQuery = "";
         let queryParams = [];
 
         if (isURL) {
-            exactQuery = `SELECT * FROM "Links" WHERE destination = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE destination ILIKE $2`;
-            queryParams = [encodeURIComponent(searchTerm), `%${encodeURIComponent(searchTerm)}%`];
+            searchQuery = `
+                SELECT * FROM "Links"
+                WHERE destination ILIKE $1
+                ORDER BY similarity(destination, $2) DESC
+                LIMIT 50;
+            `;
+            queryParams = [`%${encodeURIComponent(searchTerm)}%`, encodeURIComponent(searchTerm)];
         } else {
-            exactQuery = `SELECT * FROM "Links" WHERE slug = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE slug ILIKE $2`;
-            queryParams = [searchTerm, `%${searchTerm}%`];
+            searchQuery = `
+                SELECT * FROM "Links"
+                WHERE slug ILIKE $1
+                OR destination ILIKE $1
+                ORDER BY similarity(slug, $2) DESC, similarity(destination, $2) DESC
+                LIMIT 50;
+            `;
+            queryParams = [`%${searchTerm}%`, searchTerm];
         }
 
         try {
-            let res = await client.query(exactQuery, [queryParams[0]]);
+            let res = await client.query(searchQuery, queryParams);
             let records = res.rows;
-
-            if (records.length === 0) {
-                res = await client.query(likeQuery, [queryParams[1]]);
-                records = res.rows;
-            }
 
             if (records.length > 0) {
                 const blocks = records.map(record => {
