@@ -1115,4 +1115,5 @@ const isStaffMember = async (userId) => {
 (async () => {
     await SlackApp.start();
     console.log("Hack.af Slack is running!");
+    metrics.increment('hack.af.start', 1);
 })();
