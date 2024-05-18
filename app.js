@@ -160,29 +160,33 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         }
 
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
-
-        let exactQuery = "";
-        let likeQuery = "";
+        let searchQuery = "";
         let queryParams = [];
+        const similarityThreshold = 0.3;
 
         if (isURL) {
-            exactQuery = `SELECT * FROM "Links" WHERE destination = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE destination ILIKE $2`;
-            queryParams = [encodeURIComponent(searchTerm), `%${encodeURIComponent(searchTerm)}%`];
+            searchQuery = `
+                SELECT * FROM "Links"
+                WHERE destination ILIKE $1
+                AND similarity(destination, $2) > $3
+                ORDER BY similarity(destination, $2) DESC
+                LIMIT 50;
+            `;
+            queryParams = [`%${encodeURIComponent(searchTerm)}%`, encodeURIComponent(searchTerm), similarityThreshold];
         } else {
-            exactQuery = `SELECT * FROM "Links" WHERE slug = $1`;
-            likeQuery = `SELECT * FROM "Links" WHERE slug ILIKE $2`;
-            queryParams = [searchTerm, `%${searchTerm}%`];
+            searchQuery = `
+                SELECT * FROM "Links"
+                WHERE (slug ILIKE $1 OR destination ILIKE $1)
+                AND (similarity(slug, $2) > $3 OR similarity(destination, $2) > $3)
+                ORDER BY GREATEST(similarity(slug, $2), similarity(destination, $2)) DESC
+                LIMIT 50;
+            `;
+            queryParams = [`%${searchTerm}%`, searchTerm, similarityThreshold];
         }
 
         try {
-            let res = await client.query(exactQuery, [queryParams[0]]);
+            let res = await client.query(searchQuery, queryParams);
             let records = res.rows;
-
-            if (records.length === 0) {
-                res = await client.query(likeQuery, [queryParams[1]]);
-                records = res.rows;
-            }
 
             if (records.length > 0) {
                 const blocks = records.map(record => {
@@ -1106,7 +1110,8 @@ const isStaffMember = async (userId) => {
         'UN79ZPYMQ',   // gary
         'U014ND5P1N2',  // fayd
         'U02C9DQ7ZL2', // toby
-        'U05NX48GL3T' // jasperrrrrrr
+        'U05NX48GL3T', // jasperrrrrrr
+        'U022FMN61SB' // leo
     ]);
     return allowedUsers.has(userId)
 };
@@ -1114,4 +1119,5 @@ const isStaffMember = async (userId) => {
 (async () => {
     await SlackApp.start();
     console.log("Hack.club Slack is running!");
+    metrics.increment('hack.af.start', 1);
 })();
