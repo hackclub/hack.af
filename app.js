@@ -162,7 +162,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         const isURL = searchTerm.startsWith('http://') || searchTerm.startsWith('https://');
         let searchQuery = "";
         let queryParams = [];
-        const similarityThreshold = 0.2;
+        const similarityThreshold = 0.3;
 
         if (isURL) {
             searchQuery = `
