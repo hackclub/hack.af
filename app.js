@@ -47,7 +47,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    console.log("Hack.af is up and running on port", port);
+    console.log("Hack.club is up and running on port", port);
 });
 
 app.use(responseTime(function (req, res, time) {
@@ -89,13 +89,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
                 await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
                 return {
-                    text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+                    text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Updated! Now hack.af/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+                                text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
                             },
                         },
                         {
@@ -124,13 +124,13 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                 await insertSlugHistory(slug, newDestination, 'Created', '', command.user_id);
 
                 return {
-                    text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                    text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
                     blocks: [
                         {
                             type: 'section',
                             text: {
                                 type: 'mrkdwn',
-                                text: `Created! Now hack.af/${slug} goes to ${newDestination}.`,
+                                text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
                             },
                         },
                         {
@@ -240,15 +240,15 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
         let slug = Math.random().toString(36).substring(7);
         const recordId = Math.random().toString(36).substring(2, 15);
 
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.af/${slug}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.club/${slug}`;
 
         await client.query(`
       INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [recordId, slug, originalUrl, [], 0, qrUrl, [], '']);
 
-        let msg = `Your short URL: https://hack.af/${slug} -> ${url}`;
-        let blockMsg = `Your short URL: *<https://hack.af/${slug}|hack.af/${slug}>* -> ${url}`;
+        let msg = `Your short URL: https://hack.club/${slug} -> ${url}`;
+        let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
 
         if (isStaff) {
             msg += '\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.';
@@ -378,7 +378,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             run: shortenUrl,
             arguments: [1],
             staffRequired: false,
-            helpEntry: "Shorten any URL to a random hack.af link.",
+            helpEntry: "Shorten any URL to a random hack.club link.",
             usage: "/hack.af shorten [url]",
             parameters: "[url]: The URL you want to shorten."
         },
@@ -959,7 +959,7 @@ async function auditChanges(date1, date2, limit = 50) {
             const blocks = res.rows.map(record => {
                 const slugText = /^https?:\/\//.test(record.slug)
                     ? record.slug
-                    : `hack.af/${record.slug}`;
+                    : `hack.club/${record.slug}`;
 
                 return {
                     type: 'section',
@@ -1118,6 +1118,6 @@ const isStaffMember = async (userId) => {
 
 (async () => {
     await SlackApp.start();
-    console.log("Hack.af Slack is running!");
+    console.log("Hack.club Slack is running!");
     metrics.increment('hack.af.start', 1);
 })();
