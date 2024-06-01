@@ -221,15 +221,14 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             } else {
                 if (isURL) searchTerm = decodeURIComponent(searchTerm);
                 return {
-                    text: `No matches found for ${searchTerm}.`,
+                    text: `No matches found for "${searchTerm}".`,
                     response_type: 'ephemeral'
                 };
             }
         } catch (error) {
             console.error('SQL error:', error);
-
             return {
-                text: 'No slug found or there was an error with the query.',
+                text: 'There was an error processing your request.',
                 response_type: 'ephemeral'
             };
         }
@@ -441,9 +440,9 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
 
     const commandEntry = commands[args[0]] || commands.help
 
-    if (commandEntry.staffRequired && !isStaff)
+    if (commandEntry.staffRequired && !await isStaffMember(command.user_id))
         return await respond({
-            text: `Sorry, only staff can use this command. \`${originalCommand}\``,
+            text: `Sorry, you do not have permission to use this command. This command is restricted to certain users. Please view the allowlist [here](https://github.com/hackclub/hack.af/blob/main/app.js) if you believe this is an error. \`${originalCommand}\``,
             response_type: 'ephemeral'
         });
 
@@ -1088,6 +1087,18 @@ function forceHttps(req, res, next) {
 }
 
 const isStaffMember = async (userId) => {
+    try {
+        // get user info from Slack
+        const userInfo = await SlackApp.client.users.info({
+            user: userId
+        });
+
+        if (userInfo.user.is_admin) {
+            return true; // user is an admin
+        }
+    } catch (error) {
+        console.error('Failed to fetch user info from Slack:', error);
+    }
     const allowedUsers = new Set([
         'U04QH1TTMBP', // graham
         'U0C7B14Q3',   // max
