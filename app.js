@@ -87,6 +87,9 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
                     [newDestination, slug]
                 );
 
+                // Invalidate the cache entry since we've updated the slug such that it reloads next request
+                cache.delete(slug);
+
                 await insertSlugHistory(slug, newDestination, 'Updated', '', command.user_id);
                 return {
                     text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
