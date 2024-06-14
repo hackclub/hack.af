@@ -255,6 +255,9 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
             blockMsg += '\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.';
         }
 
+        // Invalidate the cache entry that has been updated
+        cache.delete(slug)
+
         return {
             text: msg,
             blocks: [
