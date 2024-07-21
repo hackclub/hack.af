@@ -1120,7 +1120,8 @@ const isStaffMember = async (userId) => {
         'U04GECG3H8W', // rhys 
         'U022FMN61SB', // leo
         'U029D5FG8EN', // shubham patil
-        'U06QK6AG3RD' // nora :3
+        'U06QK6AG3RD', // nora :3
+        'U0409FSKU82' // Arpan
     ]);
     return allowedUsers.has(userId)
 };
