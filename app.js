@@ -1148,7 +1148,7 @@ const isStaffMember = async (userId) => {
         'U045B4BQ2T0', // dieter
         'U04BBP8H9FA', // shawn
         'UN79ZPYMQ',   // gary
-        'U014ND5P1N2',  // fayd
+        'U014ND5P1N2', // fayd
         'U02C9DQ7ZL2', // toby
         'U05NX48GL3T', // jasperrrrrrr
         'U04GECG3H8W', // rhys 
@@ -1158,7 +1158,8 @@ const isStaffMember = async (userId) => {
         'U0409FSKU82', // Arpan
 	'U03K9LZ3AE6', // shayaan
 	'U05C64XMMHV', // Micha,
-	'U0261EB1EG7'  // Deven
+	'U0261EB1EG7', // Deven
+	'U054VC2KM9P', // dillon :)
     ]);
     return allowedUsers.has(userId)
 };
