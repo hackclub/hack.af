@@ -19,8 +19,8 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
-
-const cache = new LRUCache({ max: parseInt(process.env.CACHE_SIZE) });
+const cache_ttl_milliseconds = 60 * 1000 // 1 minute
+const cache = new LRUCache({ max: parseInt(process.env.CACHE_SIZE), ttl:cache_ttl_milliseconds });
 
 const SlackApp = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -588,11 +588,11 @@ app.get("/*", (req, res) => {
             const parsedDestination = new URL(fullUrl);
             const finalURL = parsedDestination.origin + parsedDestination.pathname + resultQuery + parsedDestination.hash;
 
-            console.log("Destination: ", destination);
-            console.log("Full URL: ", fullUrl);
-            console.log("Parsed Destination: ", parsedDestination.href);
-            console.log("Result Query: ", resultQuery);
-            console.log("Final URL: ", finalURL);
+            // console.log("Destination: ", destination);
+            // console.log("Full URL: ", fullUrl);
+            // console.log("Parsed Destination: ", parsedDestination.href);
+            // console.log("Result Query: ", resultQuery);
+            // console.log("Final URL: ", finalURL);
 
             res.redirect(307, finalURL);
         },
@@ -636,12 +636,11 @@ const lookup = async (slug) => {
     try {
         if (cache.has(slug)) {
             metrics.increment("lookup.cache.hit", 1);
-            console.log("Cache has what I needed.");
-            console.log(cache.get(slug));
+            //console.log(cache.get(slug));
             return cache.get(slug);
         } else {
             metrics.increment("lookup.cache.miss", 1);
-            console.log("Can't find useful data in cache. Asking PostgreSQL.");
+            console.log("Cache miss");
             const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
 
             if (res.rows.length > 0) {
@@ -706,8 +705,6 @@ async function logAccess(ip, ua, slug, url) {
                     (updateErr, updateRes) => {
                         if (updateErr) {
                             console.error('Error updating Links:', updateErr);
-                        } else {
-                            console.log('Links updated successfully:', updateRes);
                         }
                     }
                 );
