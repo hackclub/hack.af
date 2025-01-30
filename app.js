@@ -39,9 +39,6 @@ async function connectToDatabase() {
         try {
             const client = new Client({
                 connectionString,
-                ssl: {
-                    rejectUnauthorized: false
-                }
             });
             await client.connect();
             console.log("Connected to the database successfully");
