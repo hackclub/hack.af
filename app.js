@@ -1157,6 +1157,7 @@ const isStaffMember = async (userId) => {
 	'U07BLJ1MBEE', // leow@hackclub.com
 	'U062UG485EE', // kieran
 	'U01G0Q9K998', // lux
+	'U0641AYUJ91', // adam :P
     ]);
     return allowedUsers.has(userId)
 };
