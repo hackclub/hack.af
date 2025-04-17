@@ -1150,17 +1150,18 @@ const isStaffMember = async (userId) => {
         'U029D5FG8EN', // shubham patil
         'U06QK6AG3RD', // nora :3
         'U0409FSKU82', // Arpan
-	'U03K9LZ3AE6', // shayaan
-	'U05C64XMMHV', // Micha,
-	'U0261EB1EG7', // Deven
-	'U054VC2KM9P', // amber :)
-	'U07BLJ1MBEE', // leow@hackclub.com
-	'U062UG485EE', // kieran
-	'U01G0Q9K998', // lux
-	'U0641AYUJ91', // adam :P
-    	'U08B2HD1JNA', // phoebe
-	'U056J6JURFF', // sofia
-	'U05D1G4H754', // evan
+        'U03K9LZ3AE6', // shayaan
+        'U05C64XMMHV', // Micha,
+        'U0261EB1EG7', // Deven
+        'U054VC2KM9P', // amber :)
+        'U07BLJ1MBEE', // leow@hackclub.com
+        'U062UG485EE', // kieran
+        'U01G0Q9K998', // lux
+        'U0641AYUJ91', // adam :P
+        'U08B2HD1JNA', // phoebe
+        'U079FFTKM37', // zenab
+        'U056J6JURFF', // sofia
+        'U05D1G4H754', // evan
     ]);
     return allowedUsers.has(userId)
 };
