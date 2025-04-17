@@ -1153,12 +1153,14 @@ const isStaffMember = async (userId) => {
 	'U03K9LZ3AE6', // shayaan
 	'U05C64XMMHV', // Micha,
 	'U0261EB1EG7', // Deven
-	'U054VC2KM9P', // dillon :)
+	'U054VC2KM9P', // amber :)
 	'U07BLJ1MBEE', // leow@hackclub.com
 	'U062UG485EE', // kieran
 	'U01G0Q9K998', // lux
 	'U0641AYUJ91', // adam :P
-    'U08B2HD1JNA', // phoebe   
+    	'U08B2HD1JNA', // phoebe
+	'U056J6JURFF', // sofia
+	'U05D1G4H754', // evan
     ]);
     return allowedUsers.has(userId)
 };
