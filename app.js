@@ -1175,6 +1175,7 @@ const isStaffMember = async (userId) => {
         'U03UBRVG2MS', // sam liu
         'U07FCRNHS1J', // augie
         'U06P62WGWAV', // meghana
+        'U05UQ2RTJ6T', //mohamad
     ]);
     return allowedUsers.has(userId)
 };
