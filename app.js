@@ -553,6 +553,10 @@ app.get("/gh/:repo", (req, res) => {
     res.redirect(302, "https://github.com/hackclub/" + req.params.repo);
 });
 
+app.get("/join/:code", (req, res) => {
+    res.redirect(302, "https://leaders.hackclub.com/join/" + req.params.code);
+});
+
 app.get("/pkg!:pkid", (req, res) => {
     res.redirect(302, "https://mail.hackclub.com/pkg!" + req.params.pkid);
 })
