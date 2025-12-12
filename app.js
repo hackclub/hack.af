@@ -557,6 +557,10 @@ app.get("/join/:code", (req, res) => {
     res.redirect(302, "https://leaders.hackclub.com/join/" + req.params.code);
 });
 
+app.get("/confirm/:code", (req, res) => {
+    res.redirect(302, "https://leaders.hackclub.com/confirm/" + req.params.code);
+});
+
 app.get("/pkg!:pkid", (req, res) => {
     res.redirect(302, "https://mail.hackclub.com/pkg!" + req.params.pkid);
 })
@@ -1188,6 +1192,7 @@ const isStaffMember = async (userId) => {
         'U05JNJZJ0BS',  // CAN
         'U085US8GYG6', // Shaan :)
         'U01PJ08PR7S', // Josias 
+        'U07UV4R2G4T' // Ivie :3
     ]);
     return allowedUsers.has(userId)
 };
