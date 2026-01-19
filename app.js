@@ -574,6 +574,10 @@ app.get("/ltr!:ltid", (req, res) => {
     res.redirect(302, "https://mail.hackclub.com/ltr!" + req.params.ltid);
 })
 
+app.get("/odr!:odrid", (req, res) => {
+    res.redirect(302, "https://jenin-mail.hackclub.com/odr!" + req.params.odrid);
+})
+
 app.get("/*", (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
