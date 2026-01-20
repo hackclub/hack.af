@@ -575,7 +575,7 @@ app.get("/ltr!:ltid", (req, res) => {
 })
 
 app.get("/odr!:odrid", (req, res) => {
-    res.redirect(302, "https://jenin-mail.hackclub.com/odr!" + req.params.odrid);
+    res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params.odrid);
 })
 
 app.get("/*", (req, res) => {
