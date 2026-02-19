@@ -578,6 +578,10 @@ app.get("/odr!:odrid", (req, res) => {
     res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params.odrid);
 })
 
+app.get("/cf-:cfid", (req, res) => {
+    res.redirect(302, "https://campfire.hackclub.com/" + req.params.cfid);
+})
+
 app.get("/*", (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
