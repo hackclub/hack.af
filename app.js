@@ -578,10 +578,6 @@ app.get("/odr!:odrid", (req, res) => {
     res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params.odrid);
 })
 
-app.get("/cf-:cfid", (req, res) => {
-    res.redirect(302, "https://campfire.hackclub.com/" + req.params.cfid);
-})
-
 app.get("/*", (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
@@ -623,6 +619,8 @@ app.get("/*", (req, res) => {
             res.redirect(307, finalURL);
         },
         (_err) => {
+            if (slug.startsWith("cf-")) res.redirect(302, "https://campfire.hackclub.com/" + slug.substring(3));
+
             res.redirect(302, "https://hackclub.com/404");
         }
     ).catch((_err) => {
