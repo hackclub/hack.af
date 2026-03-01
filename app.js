@@ -1208,7 +1208,8 @@ const isStaffMember = async (userId) => {
         'U07ACECRYM6', // renran sun
         'U0926UASBJ7', // Jenin
         'U07DPHQCCCS', // Matthew
-        'U07DJMFAQQP' // Tongyu
+        'U07DJMFAQQP', // Tongyu
+        'U05F4B48GBF', // @cskartikey
     ]);
     return allowedUsers.has(userId)
 };
