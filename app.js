@@ -1210,6 +1210,7 @@ const isStaffMember = async (userId) => {
         'U07DPHQCCCS', // Matthew
         'U07DJMFAQQP', // Tongyu
         'U05F4B48GBF', // @cskartikey
+        'U080A3QP42C', // Rowan
     ]);
     return allowedUsers.has(userId)
 };
