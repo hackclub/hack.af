@@ -573,8 +573,8 @@ app.get(/^\/ltr!(.+)$/, (req, res) => {
     res.redirect(302, "https://mail.hackclub.com/ltr!" + req.params[0]);
 })
 
-app.get("/odr!:odrid", (req, res) => {
-    res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params.odrid);
+app.get(/^\/odr!(.+)$/, (req, res) => {
+    res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params[0]);
 })
 
 app.get("/*path", (req, res) => {
