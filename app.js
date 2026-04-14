@@ -2,7 +2,7 @@ import pg from 'pg';
 
 const { Client } = pg;
 import express from "express";
-import isBot from "isbot";
+import { isbot } from "isbot";
 import querystring from "querystring";
 import dotenv from "dotenv";
 import bolt from "@slack/bolt";
@@ -686,7 +686,7 @@ async function logAccess(ip, ua, slug, url) {
     if (process.env.LOGGING === "off") return;
 
     const botUA = ["apex/ping/v1.0"];
-    if (process.env.BOT_LOGGING === "off" && (isBot(ua) || botUA.includes(ua))) return;
+    if (process.env.BOT_LOGGING === "off" && (isbot(ua) || botUA.includes(ua))) return;
 
     let linkData;
     try {
@@ -711,7 +711,7 @@ async function logAccess(ip, ua, slug, url) {
         slug: slug,
         url: url,
         user_agent: ua,
-        bot: isBot(ua) || botUA.includes(ua),
+        bot: isbot(ua) || botUA.includes(ua),
         counter: 1
     };
 
