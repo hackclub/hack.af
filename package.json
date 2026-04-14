@@ -9,7 +9,7 @@
   "dependencies": {
     "@slack/bolt": "^3.13.1",
     "chai": "^4.3.10",
-    "dotenv": "^8.6.0",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
     "isbot": "^2.4.0",
@@ -26,6 +26,6 @@
     "dev": "nodemon app.js"
   },
   "devDependencies": {
-    "nodemon": "^2.0.0"
+    "nodemon": "^3.1.14"
   }
 }
