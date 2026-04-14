@@ -565,12 +565,12 @@ app.get("/confirm/:code", (req, res) => {
     res.redirect(302, "https://leaders.hackclub.com/confirm/" + req.params.code);
 });
 
-app.get("/pkg!:pkid", (req, res) => {
-    res.redirect(302, "https://mail.hackclub.com/pkg!" + req.params.pkid);
+app.get(/^\/pkg!(.+)$/, (req, res) => {
+    res.redirect(302, "https://mail.hackclub.com/pkg!" + req.params[0]);
 })
 
-app.get("/ltr!:ltid", (req, res) => {
-    res.redirect(302, "https://mail.hackclub.com/ltr!" + req.params.ltid);
+app.get(/^\/ltr!(.+)$/, (req, res) => {
+    res.redirect(302, "https://mail.hackclub.com/ltr!" + req.params[0]);
 })
 
 app.get("/odr!:odrid", (req, res) => {
