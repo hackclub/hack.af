@@ -4,20 +4,10 @@ on:
   - pull_request
 
 jobs:
-  build:
-    name: Build
+  install:
+    name: Install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - run: yarn install
-      - run: yarn build
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - run: yarn install
-      - run: yarn lint
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install

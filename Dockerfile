@@ -1,23 +1,20 @@
-# Use Node.js 23 base image
-FROM node:23
+# Use Bun base image
+FROM oven/bun:latest
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json before installing dependencies
-COPY package*.json ./
-
-# Install npm version 10.9.2
-RUN npm install -g npm@10.9.2
+# Copy package.json before installing dependencies
+COPY package.json ./
 
 # Install project dependencies
-RUN npm install
+RUN bun install
 
 # Copy the rest of the application files
 COPY . .
 
-# Expose port (change if needed)
+# Expose port
 EXPOSE 3000
 
-# Start the application (modify based on your start script)
-CMD ["npm", "start"]
+# Start the application
+CMD ["bun", "app.js"]
