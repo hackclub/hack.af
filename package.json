@@ -13,7 +13,7 @@
     "express": "^5.2.1",
     "fs": "^0.0.1-security",
     "isbot": "^5.1.38",
-    "lru-cache": "^10.0.0",
+    "lru-cache": "^11.3.5",
     "mocha": "^10.2.0",
     "node-statsd": "^0.1.1",
     "path": "^0.12.7",
