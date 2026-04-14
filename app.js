@@ -2,7 +2,6 @@ import pg from 'pg';
 
 const { Client } = pg;
 import express from "express";
-import bodyParser from "body-parser";
 import isBot from "isbot";
 import querystring from "querystring";
 import dotenv from "dotenv";
@@ -69,8 +68,8 @@ let client;
 const app = express();
 
 app.use(forceHttps);
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
@@ -578,7 +577,7 @@ app.get("/odr!:odrid", (req, res) => {
     res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params.odrid);
 })
 
-app.get("/*", (req, res) => {
+app.get("/*path", (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
 
@@ -1134,7 +1133,7 @@ function getClientIp(req) {
         const forwardedIps = forwardedIpsStr.split(",");
         return forwardedIps[0];
     }
-    return req.connection.remoteAddress;
+    return req.socket.remoteAddress;
 }
 
 function forceHttps(req, res, next) {

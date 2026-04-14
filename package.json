@@ -10,7 +10,7 @@
     "@slack/bolt": "^3.13.1",
     "chai": "^4.3.10",
     "dotenv": "^17.4.2",
-    "express": "^4.19.2",
+    "express": "^5.2.1",
     "fs": "^0.0.1-security",
     "isbot": "^5.1.38",
     "lru-cache": "^10.0.0",
