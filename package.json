@@ -12,7 +12,7 @@
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
-    "isbot": "^2.4.0",
+    "isbot": "^5.1.38",
     "lru-cache": "^10.0.0",
     "mocha": "^10.2.0",
     "node-statsd": "^0.1.1",
