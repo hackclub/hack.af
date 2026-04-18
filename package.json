@@ -11,7 +11,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "fs": "^0.0.1-security",
-    "isbot": "^5.1.38",
+    "isbot": "^5.1.39",
     "lru-cache": "^11.3.5",
     "node-statsd": "^0.1.1",
     "path": "^0.12.7",
