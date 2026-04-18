@@ -5,9 +5,7 @@ import express from "express";
 import { isbot } from "isbot";
 import querystring from "querystring";
 import dotenv from "dotenv";
-import bolt, { LogLevel } from "@slack/bolt";
-
-const { App } = bolt;
+import { App } from "@slack/bolt";
 import responseTime from "response-time";
 import metrics from './metrics.js';
 import { LRUCache } from 'lru-cache';
@@ -25,7 +23,6 @@ const SlackApp = new App({
     token: process.env.SLACK_BOT_TOKEN,
     appToken: process.env.SLACK_APP_TOKEN,
     socketMode: true,
-    logLevel: LogLevel.DEBUG,
 });
 
 const connectionString = process.env.DATABASE_URL;
