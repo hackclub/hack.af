@@ -5,9 +5,9 @@ import express from "express";
 import { isbot } from "isbot";
 import querystring from "querystring";
 import dotenv from "dotenv";
-import bolt from "@slack/bolt";
+import bolt, { LogLevel } from "@slack/bolt";
 
-const { App, LogLevel } = bolt;
+const { App } = bolt;
 import responseTime from "response-time";
 import metrics from './metrics.js';
 import { LRUCache } from 'lru-cache';
