@@ -1093,9 +1093,9 @@ async function getGeolocation(command) {
                 users: command.user_id
             });
 
-            await SlackApp.client.files.upload({
-                channels: dmResponse.channel.id,
-                file: createReadStream(filePath),
+            await SlackApp.client.filesUploadV2({
+                channel_id: dmResponse.channel.id,
+                file: filePath,
                 filename: path.basename(filePath),
                 token: process.env.SLACK_BOT_TOKEN
             });
