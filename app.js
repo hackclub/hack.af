@@ -574,6 +574,10 @@ app.get(/^\/odr!(.+)$/, (req, res) => {
     res.redirect(302, "https://fulfillment.hackclub.com/odr!" + req.params[0]);
 })
 
+app.get("/f/:form", (req, res) => {
+    res.redirect(302, "https://forms.hackclub.com/" + req.params.form);
+});
+
 app.get(["/*path", "/"], (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
