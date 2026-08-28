@@ -545,6 +545,10 @@ app.get("/gib/:org", (req, res) => {
     res.redirect(302, "https://hcb.hackclub.com/donations/start/" + req.params.org);
 });
 
+app.get("/hcb/:org", (req, res) => {
+    res.redirect(302, "https://hcb.hackclub.com/" + req.params.org);
+});
+
 app.get("/gh/:repo", (req, res) => {
     res.redirect(302, "https://github.com/hackclub/" + req.params.repo);
 });
