@@ -545,21 +545,16 @@ app.get("/gib/:org", (req, res) => {
     res.redirect(302, "https://hcb.hackclub.com/donations/start/" + req.params.org);
 });
 
+app.get("/hcb/:org", (req, res) => {
+    res.redirect(302, "https://hcb.hackclub.com/" + req.params.org);
+});
+
 app.get("/gh/:repo", (req, res) => {
     res.redirect(302, "https://github.com/hackclub/" + req.params.repo);
 });
 
 app.get("/join/:code", (req, res) => {
-    res.redirect(302, "https://leaders.hackclub.com/join/" + req.params.code);
-});
-
-
-app.get("/club/:name", (req, res) => {
-    res.redirect(302, "https://leaders.hackclub.com/redirect/" + req.params.name);
-});
-
-app.get("/confirm/:code", (req, res) => {
-    res.redirect(302, "https://leaders.hackclub.com/confirm/" + req.params.code);
+    res.redirect(302, "https://clubs.hackclub.com/auth/member?join=" + req.params.code);
 });
 
 app.get(/^\/pkg!(.+)$/, (req, res) => {
