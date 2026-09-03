@@ -573,6 +573,10 @@ app.get("/f/:form", (req, res) => {
     res.redirect(302, "https://forms.hackclub.com/" + req.params.form);
 });
 
+app.get("/programs", (req, res) => {
+    res.redirect(302, "https://hackclub.com/programs");
+});
+
 app.get(["/*path", "/"], (req, res) => {
     let slug = decodeURIComponent(req.path.substring(1));
     const query = req.query;
