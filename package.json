@@ -7,17 +7,16 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@slack/bolt": "^4.7.0",
+    "@slack/bolt": "^4.7.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "fs": "^0.0.1-security",
-    "isbot": "^5.1.39",
-    "lru-cache": "^11.3.5",
+    "isbot": "^5.2.2",
+    "lru-cache": "^11.5.2",
     "node-statsd": "^0.1.1",
     "path": "^0.12.7",
-    "pg": "^8.11.0",
-    "response-time": "^2.3.2",
-    "url": "^0.11.3"
+    "pg": "^8.23.0",
+    "response-time": "^2.3.4",
+    "url": "^0.11.4"
   },
   "scripts": {
     "start": "node app.js",

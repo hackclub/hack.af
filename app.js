@@ -10,7 +10,6 @@ import responseTime from "response-time";
 import metrics from './metrics.js';
 import { LRUCache } from 'lru-cache';
 import { writeFile } from 'fs/promises';
-import { createReadStream } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
