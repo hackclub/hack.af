@@ -65,6 +65,7 @@ let client;
 const app = express();
 
 app.use(forceHttps);
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
