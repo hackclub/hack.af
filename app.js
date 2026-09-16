@@ -1217,6 +1217,10 @@ const isStaffMember = async (userId) => {
         'U07HEH4N8UV', // @jps
         "U093AJCBP0C", // Alfie
         'U094X8Y4MMG', // willsbuilds
+        'U08RVF1BAN4', // barnav 
+        'U08QMC72ZST', // kaylee dinh
+        'U06SQJ508LF', // katie su
+        'U08CJCZ2Z9S', // jolly wang
     ]);
     return allowedUsers.has(userId)
 };
