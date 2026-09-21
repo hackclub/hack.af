@@ -557,6 +557,10 @@ app.get("/join/:code", (req, res) => {
     res.redirect(302, "https://clubs.hackclub.com/auth/member?join=" + req.params.code);
 });
 
+app.get("/haven/:city", (req, res) => {
+    res.redirect(302, "https://haven.hackclub.com/" + req.params.city);
+});
+
 app.get(/^\/pkg!(.+)$/, (req, res) => {
     res.redirect(302, "https://mail.hackclub.com/pkg!" + req.params[0]);
 })
@@ -619,6 +623,7 @@ app.get(["/*path", "/"], (req, res) => {
         },
         (_err) => {
             if (slug.startsWith("cf-")) res.redirect(302, "https://campfire.hackclub.com/" + slug.substring(3));
+            if (slug.startsWith("hv-")) res.redirect(302, "https://haven.hackclub.com/" + slug.substring(3));
 
             res.redirect(302, "https://hackclub.com/404");
         }
