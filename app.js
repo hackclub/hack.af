@@ -1227,6 +1227,9 @@ const isStaffMember = async (userId) => {
         'U06SQJ508LF', // katie su
         'U08CJCZ2Z9S', // jolly wang
         'U07GLQY6UN4', // daamin
+        'U078VN0UU2K', // freddie
+        'U09AYT4B1JB', // wally
+        'U07ULNFPQ4T', // lynn
     ]);
     return allowedUsers.has(userId)
 };
