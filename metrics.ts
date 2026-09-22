@@ -1,9 +1,8 @@
-import StatsD from 'node-statsd';
+import { StatsD } from "hot-shots"
 import dotenv from 'dotenv';
 dotenv.config();
 
-const environment = process.env.NODE_ENV
-const graphite = process.env.GRAPHITE_HOST
+const graphite = Bun.env.GRAPHITE_HOST
 
 if (graphite == null) {
   throw new Error('Graphite host not configured!')
@@ -12,7 +11,7 @@ if (graphite == null) {
 const options = {
   host: graphite,
   port: 8125,
-  prefix: `${environment}.hackaf.`,
+  prefix: `${Bun.env.NODE_ENV}.hackaf.`,
 }
 
 const metrics = new StatsD(options)
