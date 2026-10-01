@@ -7,516 +7,531 @@ import type { KnownBlock } from "@slack/types";
 import { writeFile } from "fs/promises";
 import path from "path";
 
-export const SlackApp = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  appToken: process.env.SLACK_APP_TOKEN,
-  socketMode: true,
-});
+export let SlackApp: App | null = null;
 
-SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
-  await ack();
-
-  const args = command.text.split(" ");
-  const originalCommand = `${command.command} ${command.text}`;
-  const isStaff = isStaffMember(command.user_id);
-  async function changeSlug(slug: string, newDestination: string) {
-    newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, "");
-    let existingRes;
-    try {
-      existingRes = await client.query(
-        `SELECT * FROM "Links" WHERE slug = $1`,
-        [slug],
-      );
-    } catch (error) {
-      console.error("Database error during SELECT:", error);
-      throw new Error("Error checking for existing slug");
-    }
-
-    if (existingRes.rowCount === null) {
-      console.error("Database error: rowCount is null for SELECT query");
-      throw new Error("Error checking for existing slug");
-    }
-
-    const isUpdate = existingRes && existingRes.rowCount > 0;
-
-    if (isUpdate) {
-      const lastDestination = decodeURIComponent(
-        existingRes.rows[0].destination,
-      );
-      try {
-        await client.query(
-          `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
-          [newDestination, slug],
-        );
-
-        // Invalidate the cache entry since we've updated the slug such that it reloads next request
-        cache.delete(slug);
-
-        await insertSlugHistory(
-          slug,
-          newDestination,
-          "Updated",
-          "",
-          command.user_id,
-        );
-        return {
-          text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
-              },
-            },
-            {
-              type: "context",
-              elements: [
-                {
-                  type: "mrkdwn",
-                  text: `Request made by <@${command.user_id}>`,
-                },
-              ],
-            },
-          ],
-        };
-      } catch (error) {
-        console.error("Database error during UPDATE:", error);
-        throw new Error("Error updating the slug");
-      }
-    } else {
-      try {
-        await client.query(
-          `INSERT INTO "Links" ("Record Id", slug, destination) 
-                    VALUES ($1, $2, $3)`,
-          [Math.random().toString(36).substring(2, 15), slug, newDestination],
-        );
-
-        await insertSlugHistory(
-          slug,
-          newDestination,
-          "Created",
-          "",
-          command.user_id,
-        );
-
-        return {
-          text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
-              },
-            },
-            {
-              type: "context",
-              elements: [
-                {
-                  type: "mrkdwn",
-                  text: `Request made by <@${command.user_id}>`,
-                },
-              ],
-            },
-          ],
-        };
-      } catch (error) {
-        console.error("Database error during INSERT:", error);
-        throw new Error("Error creating the slug");
-      }
-    }
+export function InitSlackApp() {
+  if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
+    console.warn("Slack bot token or app token not configured!");
+    return;
   }
 
-  async function searchSlug(searchTerm: string) {
-    if (!searchTerm) {
-      return {
-        text: "No slug provided. Please provide a slug to search for.",
-        response_type: "ephemeral",
-      };
+  SlackApp = new App({
+    token: process.env.SLACK_BOT_TOKEN,
+    appToken: process.env.SLACK_APP_TOKEN,
+    socketMode: true,
+  });
+
+  SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
+    await ack();
+
+    const args = command.text.split(" ");
+    const originalCommand = `${command.command} ${command.text}`;
+    const isStaff = isStaffMember(command.user_id);
+    async function changeSlug(slug: string, newDestination: string) {
+      newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, "");
+      let existingRes;
+      try {
+        existingRes = await client.query(
+          `SELECT * FROM "Links" WHERE slug = $1`,
+          [slug],
+        );
+      } catch (error) {
+        console.error("Database error during SELECT:", error);
+        throw new Error("Error checking for existing slug");
+      }
+
+      if (existingRes.rowCount === null) {
+        console.error("Database error: rowCount is null for SELECT query");
+        throw new Error("Error checking for existing slug");
+      }
+
+      const isUpdate = existingRes && existingRes.rowCount > 0;
+
+      if (isUpdate) {
+        const lastDestination = decodeURIComponent(
+          existingRes.rows[0].destination,
+        );
+        try {
+          await client.query(
+            `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
+            [newDestination, slug],
+          );
+
+          // Invalidate the cache entry since we've updated the slug such that it reloads next request
+          cache.delete(slug);
+
+          await insertSlugHistory(
+            slug,
+            newDestination,
+            "Updated",
+            "",
+            command.user_id,
+          );
+          return {
+            text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
+                },
+              },
+              {
+                type: "context",
+                elements: [
+                  {
+                    type: "mrkdwn",
+                    text: `Request made by <@${command.user_id}>`,
+                  },
+                ],
+              },
+            ],
+          };
+        } catch (error) {
+          console.error("Database error during UPDATE:", error);
+          throw new Error("Error updating the slug");
+        }
+      } else {
+        try {
+          await client.query(
+            `INSERT INTO "Links" ("Record Id", slug, destination) 
+                    VALUES ($1, $2, $3)`,
+            [Math.random().toString(36).substring(2, 15), slug, newDestination],
+          );
+
+          await insertSlugHistory(
+            slug,
+            newDestination,
+            "Created",
+            "",
+            command.user_id,
+          );
+
+          return {
+            text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
+                },
+              },
+              {
+                type: "context",
+                elements: [
+                  {
+                    type: "mrkdwn",
+                    text: `Request made by <@${command.user_id}>`,
+                  },
+                ],
+              },
+            ],
+          };
+        } catch (error) {
+          console.error("Database error during INSERT:", error);
+          throw new Error("Error creating the slug");
+        }
+      }
     }
 
-    const isURL =
-      searchTerm.startsWith("http://") || searchTerm.startsWith("https://");
-    let searchQuery = "";
-    let queryParams = [];
-    const similarityThreshold = 0.3;
+    async function searchSlug(searchTerm: string) {
+      if (!searchTerm) {
+        return {
+          text: "No slug provided. Please provide a slug to search for.",
+          response_type: "ephemeral",
+        };
+      }
 
-    if (isURL) {
-      searchQuery = `
+      const isURL =
+        searchTerm.startsWith("http://") || searchTerm.startsWith("https://");
+      let searchQuery = "";
+      let queryParams = [];
+      const similarityThreshold = 0.3;
+
+      if (isURL) {
+        searchQuery = `
                 SELECT * FROM "Links"
                 WHERE destination ILIKE $1
                 AND similarity(destination, $2) > $3
                 ORDER BY similarity(destination, $2) DESC
                 LIMIT 50;
             `;
-      queryParams = [
-        `%${encodeURIComponent(searchTerm)}%`,
-        encodeURIComponent(searchTerm),
-        similarityThreshold,
-      ];
-    } else {
-      searchQuery = `
+        queryParams = [
+          `%${encodeURIComponent(searchTerm)}%`,
+          encodeURIComponent(searchTerm),
+          similarityThreshold,
+        ];
+      } else {
+        searchQuery = `
                 SELECT * FROM "Links"
                 WHERE (slug ILIKE $1 OR destination ILIKE $1)
                 AND (similarity(slug, $2) > $3 OR similarity(destination, $2) > $3)
                 ORDER BY GREATEST(similarity(slug, $2), similarity(destination, $2)) DESC
                 LIMIT 50;
             `;
-      queryParams = [`%${searchTerm}%`, searchTerm, similarityThreshold];
-    }
+        queryParams = [`%${searchTerm}%`, searchTerm, similarityThreshold];
+      }
 
-    try {
-      let res = await client.query(searchQuery, queryParams);
-      let records = res.rows;
+      try {
+        let res = await client.query(searchQuery, queryParams);
+        let records = res.rows;
 
-      if (records.length > 0) {
-        const blocks: KnownBlock[] = records.map((record) => {
-          return {
-            type: "section",
-            fields: [
+        if (records.length > 0) {
+          const blocks: KnownBlock[] = records.map((record) => {
+            return {
+              type: "section",
+              fields: [
+                {
+                  type: "mrkdwn",
+                  text: `*Slug:* ${record.slug}`,
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`,
+                },
+              ],
+            };
+          });
+
+          blocks.push({
+            type: "context",
+            elements: [
               {
                 type: "mrkdwn",
-                text: `*Slug:* ${record.slug}`,
-              },
-              {
-                type: "mrkdwn",
-                text: `*Destination:* <${decodeURIComponent(record.destination)}|${decodeURIComponent(record.destination)}>`,
+                text: `Request made by <@${command.user_id}>`,
               },
             ],
+          });
+
+          return {
+            blocks,
           };
-        });
-
-        blocks.push({
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `Request made by <@${command.user_id}>`,
-            },
-          ],
-        });
+        } else {
+          if (isURL) searchTerm = decodeURIComponent(searchTerm);
+          return {
+            text: `No matches found for ${searchTerm}.`,
+            response_type: "ephemeral",
+          };
+        }
+      } catch (error) {
+        console.error("SQL error:", error);
 
         return {
-          blocks,
-        };
-      } else {
-        if (isURL) searchTerm = decodeURIComponent(searchTerm);
-        return {
-          text: `No matches found for ${searchTerm}.`,
+          text: "No slug found or there was an error with the query.",
           response_type: "ephemeral",
         };
       }
-    } catch (error) {
-      console.error("SQL error:", error);
-
-      return {
-        text: "No slug found or there was an error with the query.",
-        response_type: "ephemeral",
-      };
     }
-  }
 
-  async function shortenUrl(url: string) {
-    const originalUrl = encodeURIComponent(url);
-    let slug = Math.random().toString(36).substring(7);
-    const recordId = Math.random().toString(36).substring(2, 15);
+    async function shortenUrl(url: string) {
+      const originalUrl = encodeURIComponent(url);
+      let slug = Math.random().toString(36).substring(7);
+      const recordId = Math.random().toString(36).substring(2, 15);
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.club/${slug}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.club/${slug}`;
 
-    await client.query(
-      `
+      await client.query(
+        `
       INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
-      [recordId, slug, originalUrl, [], 0, qrUrl, [], ""],
-    );
+        [recordId, slug, originalUrl, [], 0, qrUrl, [], ""],
+      );
 
-    let msg = `Your short URL: https://hack.club/${slug} -> ${url}`;
-    let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
+      let msg = `Your short URL: https://hack.club/${slug} -> ${url}`;
+      let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
 
-    if (isStaff) {
-      msg +=
-        "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
-      blockMsg +=
-        "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
+      if (isStaff) {
+        msg +=
+          "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
+        blockMsg +=
+          "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
+      }
+
+      // Invalidate the cache entry that has been updated
+      cache.delete(slug);
+
+      return {
+        text: msg,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: blockMsg,
+            },
+          },
+          {
+            type: "image",
+            title: {
+              type: "plain_text",
+              text: "QR Code",
+            },
+            image_url: qrUrl,
+            alt_text: "QR Code for your URL",
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `Request made by <@${command.user_id}>`,
+              },
+            ],
+          },
+        ],
+      };
     }
 
-    // Invalidate the cache entry that has been updated
-    cache.delete(slug);
+    async function deleteSlug(slug: string) {
+      cache.delete(slug);
 
-    return {
-      text: msg,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: blockMsg,
-          },
-        },
-        {
-          type: "image",
-          title: {
-            type: "plain_text",
-            text: "QR Code",
-          },
-          image_url: qrUrl,
-          alt_text: "QR Code for your URL",
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `Request made by <@${command.user_id}>`,
-            },
-          ],
-        },
-      ],
-    };
-  }
-
-  async function deleteSlug(slug: string) {
-    cache.delete(slug);
-
-    await client.query(
-      `
+      await client.query(
+        `
         DELETE FROM "Links"
         WHERE slug = $1
       `,
-      [slug],
-    );
+        [slug],
+      );
 
-    return {
-      text: `URL for slug ${slug} has been successfully deleted.`,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `URL for slug ${slug} has been successfully deleted.`,
-          },
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `Request made by <@${command.user_id}>`,
-            },
-          ],
-        },
-      ],
-    };
-  }
-
-  async function showHelp(commandName: string) {
-    return {
-      text: `Hack.af help`,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: commandName
-              ? generateHelpText(commandName as keyof typeof commands)
-              : Object.keys(commands)
-                  .map((key) => generateHelpText(key as keyof typeof commands))
-                  .join("\n\n"),
-          },
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `Request made by <@${command.user_id}>`,
-            },
-          ],
-        },
-      ],
-    };
-  }
-
-  function generateHelpText(commandName: keyof typeof commands) {
-    const { usage, helpEntry, parameters, staffRequired } =
-      commands[commandName]!;
-    let helpText = `\`${usage}\``;
-    if (staffRequired) {
-      helpText += `: (*Admin only*)`;
-    }
-    helpText += ` ${helpEntry}`;
-    if (parameters) {
-      helpText += `\n*Parameters*: ${parameters}`;
-    }
-    return helpText;
-  }
-
-  interface CommandEntry {
-    run: (...args: string[]) => Promise<any>;
-    arguments: number[];
-    staffRequired: boolean;
-    helpEntry: string;
-    usage: string;
-    parameters?: string;
-  }
-
-  interface Commands {
-    [key: string]: CommandEntry;
-  }
-
-  const commands: Commands = {
-    set: {
-      run: changeSlug,
-      arguments: [2],
-      staffRequired: true,
-      helpEntry: "Shorten a URL to a custom slug.",
-      usage: "/hack.af set [slug-name] [destination-url]",
-      parameters:
-        "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten.",
-    },
-    search: {
-      run: searchSlug,
-      arguments: [1],
-      staffRequired: false,
-      helpEntry: "Search for a particular slug in the database.",
-      usage: "/hack.af search [slug-name]",
-      parameters: "[slug-name]: The slug you want to search for.",
-    },
-    shorten: {
-      run: shortenUrl,
-      arguments: [1],
-      staffRequired: false,
-      helpEntry: "Shorten any URL to a random hack.club link.",
-      usage: "/hack.af shorten [url]",
-      parameters: "[url]: The URL you want to shorten.",
-    },
-    delete: {
-      run: deleteSlug,
-      arguments: [1],
-      staffRequired: true,
-      helpEntry: "Delete a slug from the database.",
-      usage: "/hack.af delete [slug-name]",
-      parameters: "[slug-name]: The slug you want to delete.",
-    },
-    help: {
-      run: showHelp,
-      arguments: [0, 1],
-      staffRequired: false,
-      helpEntry: "Show help documentation.",
-      usage: "/hack.af help",
-    },
-    metrics: {
-      run: getMetrics,
-      arguments: [1],
-      staffRequired: true,
-      helpEntry: "Retrieve and display metrics for a specific slug.",
-      usage: "/hack.af metrics [slug-name]",
-      parameters: "[slug-name]: The slug you want to retrieve metrics for.",
-    },
-    history: {
-      run: getHistory,
-      arguments: [1],
-      staffRequired: true,
-      helpEntry: "Retrieve history of slugs over time.",
-      usage: "/hack.af history [slug-name]",
-      parameters: "[slug-name]: The slug you want to retrieve history of.",
-    },
-    note: {
-      run: updateNotes,
-      arguments: [-1],
-      staffRequired: true,
-      helpEntry: "Add or update notes to a slug.",
-      usage: "/hack.af note [slug-name] [note-content]",
-      parameters:
-        "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note.",
-    },
-    audit: {
-      run: auditChanges,
-      arguments: [2],
-      staffRequired: true,
-      helpEntry: "List all changes to slugs within a given time period.",
-      usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
-      parameters:
-        "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search.",
-    },
-    geolocation: {
-      run: () => getGeolocation(command),
-      arguments: [1],
-      staffRequired: true,
-      helpEntry: "Retrieve IP addresses for a specific slug.",
-      usage: "/hack.af geolocation [slug-name]",
-      parameters:
-        "[slug-name]: The slug you want to retrieve IP addresses for.",
-    },
-  };
-
-  const commandName = args[0] ?? "help";
-  const commandEntry = commands[commandName] ?? commands.help;
-
-  if (!commandEntry) {
-    // this means commands.help is somehow missing
-    return await respond({
-      text: `Your command is missing, and the help command is missing. Please contact a maintainer. \`${originalCommand}\``,
-      response_type: "ephemeral",
-    });
-  }
-
-  if (commandEntry.staffRequired && !isStaff)
-    return await respond({
-      text: `Sorry, only staff can use this command. \`${originalCommand}\``,
-      response_type: "ephemeral",
-    });
-
-  const acceptsVariableArguments = commandEntry.arguments.includes(-1);
-
-  if (
-    !acceptsVariableArguments &&
-    !commandEntry.arguments.includes(args.length - 1)
-  )
-    return await respond({
-      text: `The command accepts ${commandEntry.arguments.join(", ")} arguments, but you supplied ${args.length - 1}. Please check your formatting. \`${originalCommand}\``,
-      response_type: "ephemeral",
-    });
-
-  try {
-    incrementMetric(`botcommands.${args[0]}.attempt`, 1);
-
-    let result;
-    console.log("Command entry:", commandEntry);
-    if (commandName === "geolocation") {
-      result = await getGeolocation(command);
-    } else {
-      result = acceptsVariableArguments
-        ? await commandEntry.run(...args.slice(1))
-        : await commandEntry.run(
-            ...args.slice(1, commandEntry.arguments[0]! + 1),
-          );
-
-      result.blocks.push({
-        type: "context",
-        elements: [
+      return {
+        text: `URL for slug ${slug} has been successfully deleted.`,
+        blocks: [
           {
-            type: "mrkdwn",
-            text: `\`${originalCommand}\``,
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `URL for slug ${slug} has been successfully deleted.`,
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `Request made by <@${command.user_id}>`,
+              },
+            ],
           },
         ],
+      };
+    }
+
+    async function showHelp(commandName: string) {
+      return {
+        text: `Hack.af help`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: commandName
+                ? generateHelpText(commandName as keyof typeof commands)
+                : Object.keys(commands)
+                    .map((key) =>
+                      generateHelpText(key as keyof typeof commands),
+                    )
+                    .join("\n\n"),
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `Request made by <@${command.user_id}>`,
+              },
+            ],
+          },
+        ],
+      };
+    }
+
+    function generateHelpText(commandName: keyof typeof commands) {
+      const { usage, helpEntry, parameters, staffRequired } =
+        commands[commandName]!;
+      let helpText = `\`${usage}\``;
+      if (staffRequired) {
+        helpText += `: (*Admin only*)`;
+      }
+      helpText += ` ${helpEntry}`;
+      if (parameters) {
+        helpText += `\n*Parameters*: ${parameters}`;
+      }
+      return helpText;
+    }
+
+    interface CommandEntry {
+      run: (...args: string[]) => Promise<any>;
+      arguments: number[];
+      staffRequired: boolean;
+      helpEntry: string;
+      usage: string;
+      parameters?: string;
+    }
+
+    interface Commands {
+      [key: string]: CommandEntry;
+    }
+
+    const commands: Commands = {
+      set: {
+        run: changeSlug,
+        arguments: [2],
+        staffRequired: true,
+        helpEntry: "Shorten a URL to a custom slug.",
+        usage: "/hack.af set [slug-name] [destination-url]",
+        parameters:
+          "[slug-name]: The custom slug you want to use.\n[destination-url]: The URL you want to shorten.",
+      },
+      search: {
+        run: searchSlug,
+        arguments: [1],
+        staffRequired: false,
+        helpEntry: "Search for a particular slug in the database.",
+        usage: "/hack.af search [slug-name]",
+        parameters: "[slug-name]: The slug you want to search for.",
+      },
+      shorten: {
+        run: shortenUrl,
+        arguments: [1],
+        staffRequired: false,
+        helpEntry: "Shorten any URL to a random hack.club link.",
+        usage: "/hack.af shorten [url]",
+        parameters: "[url]: The URL you want to shorten.",
+      },
+      delete: {
+        run: deleteSlug,
+        arguments: [1],
+        staffRequired: true,
+        helpEntry: "Delete a slug from the database.",
+        usage: "/hack.af delete [slug-name]",
+        parameters: "[slug-name]: The slug you want to delete.",
+      },
+      help: {
+        run: showHelp,
+        arguments: [0, 1],
+        staffRequired: false,
+        helpEntry: "Show help documentation.",
+        usage: "/hack.af help",
+      },
+      metrics: {
+        run: getMetrics,
+        arguments: [1],
+        staffRequired: true,
+        helpEntry: "Retrieve and display metrics for a specific slug.",
+        usage: "/hack.af metrics [slug-name]",
+        parameters: "[slug-name]: The slug you want to retrieve metrics for.",
+      },
+      history: {
+        run: getHistory,
+        arguments: [1],
+        staffRequired: true,
+        helpEntry: "Retrieve history of slugs over time.",
+        usage: "/hack.af history [slug-name]",
+        parameters: "[slug-name]: The slug you want to retrieve history of.",
+      },
+      note: {
+        run: updateNotes,
+        arguments: [-1],
+        staffRequired: true,
+        helpEntry: "Add or update notes to a slug.",
+        usage: "/hack.af note [slug-name] [note-content]",
+        parameters:
+          "[slug-name]: The slug you want to add/update a note for.\n[note-content]: The content of the note.",
+      },
+      audit: {
+        run: auditChanges,
+        arguments: [2],
+        staffRequired: true,
+        helpEntry: "List all changes to slugs within a given time period.",
+        usage: "/hack.af audit [YYYY-MM-DD] [YYYY-MM-DD]",
+        parameters:
+          "[YYYY-MM-DD]: The start date for the audit search.\n[YYYY-MM-DD]: The end date for the audit search.",
+      },
+      geolocation: {
+        run: () => getGeolocation(command, SlackApp!),
+        arguments: [1],
+        staffRequired: true,
+        helpEntry: "Retrieve IP addresses for a specific slug.",
+        usage: "/hack.af geolocation [slug-name]",
+        parameters:
+          "[slug-name]: The slug you want to retrieve IP addresses for.",
+      },
+    };
+
+    const commandName = args[0] ?? "help";
+    const commandEntry = commands[commandName] ?? commands.help;
+
+    if (!commandEntry) {
+      // this means commands.help is somehow missing
+      return await respond({
+        text: `Your command is missing, and the help command is missing. Please contact a maintainer. \`${originalCommand}\``,
+        response_type: "ephemeral",
       });
     }
-    await respondEphemeral(respond, result);
 
-    incrementMetric(`botcommands.${args[0]}.success`, 1);
-  } catch (error: unknown) {
-    incrementMetric(`botcommands.${args[0]}.error`, 1);
+    if (commandEntry.staffRequired && !isStaff)
+      return await respond({
+        text: `Sorry, only staff can use this command. \`${originalCommand}\``,
+        response_type: "ephemeral",
+      });
 
-    await respond({
-      text: `There was an error processing your request: ${error instanceof Error ? error.message : "Unknown error"}. \`${originalCommand}\``,
-      response_type: "ephemeral",
-    });
-    console.error(error);
-  }
-});
+    const acceptsVariableArguments = commandEntry.arguments.includes(-1);
+
+    if (
+      !acceptsVariableArguments &&
+      !commandEntry.arguments.includes(args.length - 1)
+    )
+      return await respond({
+        text: `The command accepts ${commandEntry.arguments.join(", ")} arguments, but you supplied ${args.length - 1}. Please check your formatting. \`${originalCommand}\``,
+        response_type: "ephemeral",
+      });
+
+    try {
+      incrementMetric(`botcommands.${args[0]}.attempt`, 1);
+
+      let result;
+      console.log("Command entry:", commandEntry);
+      if (commandName === "geolocation") {
+        result = await getGeolocation(command, SlackApp!);
+      } else {
+        result = acceptsVariableArguments
+          ? await commandEntry.run(...args.slice(1))
+          : await commandEntry.run(
+              ...args.slice(1, commandEntry.arguments[0]! + 1),
+            );
+
+        result.blocks.push({
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `\`${originalCommand}\``,
+            },
+          ],
+        });
+      }
+      await respondEphemeral(respond, result);
+
+      incrementMetric(`botcommands.${args[0]}.success`, 1);
+    } catch (error: unknown) {
+      incrementMetric(`botcommands.${args[0]}.error`, 1);
+
+      await respond({
+        text: `There was an error processing your request: ${error instanceof Error ? error.message : "Unknown error"}. \`${originalCommand}\``,
+        response_type: "ephemeral",
+      });
+      console.error(error);
+    }
+  });
+
+  SlackApp.start().then(() => {
+    console.log("Slack bot is running!");
+  });
+}
 
 async function insertSlugHistory(
   slug: string,
@@ -720,7 +735,10 @@ async function auditChanges(date1: string, date2: string, limit = "50") {
   }
 }
 
-async function getGeolocation(command: { text: string; user_id: string }) {
+async function getGeolocation(
+  command: { text: string; user_id: string },
+  SlackApp: App,
+) {
   let slug: string | undefined = undefined;
   try {
     const tempslug = command.text.split(" ")[1];

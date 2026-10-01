@@ -8,20 +8,21 @@
   "type": "module",
   "scripts": {
     "start": "bun src/app.ts",
-    "dev": "NODE_ENV=development bun --watch src/app.ts"
+    "dev": "NODE_ENV=development bun --watch src/app.ts",
+    "docker-dev": "docker compose -f compose.dev.yml up -d"
   },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
-    "@slack/types": "^3.1.0",
+    "@slack/types": "^3.2.0",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",
     "@types/response-time": "^2.3.9",
     "express": "^5.2.1",
     "hot-shots": "^17.1.1",
     "isbot": "^5.2.2",
-    "lru-cache": "^11.5.2",
+    "lru-cache": "^11.5.3",
     "path": "^0.12.7",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "response-time": "^2.3.4",
     "url": "^0.11.4"
   },
@@ -30,6 +31,6 @@
   },
   "private": true,
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }
