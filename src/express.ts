@@ -53,10 +53,7 @@ app.get("/glitch", (_req, res: Response) => {
 });
 
 app.get("/gib/:org", (req, res) => {
-  res.redirect(
-    302,
-    "https://hcb.hackclub.com/donations/start/" + req.params.org,
-  );
+  res.redirect(302, "https://hcb.hackclub.com/donations/start/" + req.params.org);
 });
 
 app.get("/hcb/:org", (req, res) => {
@@ -68,10 +65,7 @@ app.get("/gh/:repo", (req, res) => {
 });
 
 app.get("/join/:code", (req, res) => {
-  res.redirect(
-    302,
-    "https://clubs.hackclub.com/auth/member?join=" + req.params.code,
-  );
+  res.redirect(302, "https://clubs.hackclub.com/auth/member?join=" + req.params.code);
 });
 
 app.get("/haven/:city", (req, res) => {
@@ -94,7 +88,7 @@ app.get("/f/:form", (req, res) => {
   res.redirect(302, "https://forms.hackclub.com/" + req.params.form);
 });
 
-app.get("/programs", (_req,res: Response) => {
+app.get("/programs", (_req, res: Response) => {
   res.redirect(302, "https://hackclub.com/programs");
 });
 
@@ -115,12 +109,7 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
     reqHeaders = "";
   }
   const clientIp = getClientIp(req) || "Undefined";
-  logAccess(
-    clientIp,
-    reqHeaders,
-    slug,
-    req.protocol + "://" + req.get("host") + req.originalUrl,
-  );
+  logAccess(clientIp, reqHeaders, slug, req.protocol + "://" + req.get("host") + req.originalUrl);
 
   lookup(decodeURI(slug))
     .then(
@@ -135,10 +124,7 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
           fullUrl = "http://" + fullUrl;
         }
 
-        var resultQuery = combineQueries(
-          querystring.parse(new URL(fullUrl).search),
-          query,
-        );
+        var resultQuery = combineQueries(querystring.parse(new URL(fullUrl).search), query);
 
         const parsedDestination = new URL(fullUrl);
         const finalURL =
@@ -159,10 +145,7 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
       },
       (_err) => {
         if (slug.startsWith("cf-"))
-          res.redirect(
-            302,
-            "https://campfire.hackclub.com/" + slug.substring(3),
-          );
+          res.redirect(302, "https://campfire.hackclub.com/" + slug.substring(3));
         if (slug.startsWith("hv-"))
           res.redirect(302, "https://haven.hackclub.com/" + slug.substring(3));
 
@@ -175,10 +158,7 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
 });
 
 // Helper Functions
-function combineQueries(
-  q1: Record<string, unknown>,
-  q2: Record<string, unknown>,
-): string {
+function combineQueries(q1: Record<string, unknown>, q2: Record<string, unknown>): string {
   for (let key in q1) {
     if (key[0] === "?") {
       const value = q1[key];
@@ -223,9 +203,7 @@ const lookup = async (slug: string) => {
     } else {
       incrementMetric("lookup.cache.miss", 1);
       console.log("Cache miss");
-      const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [
-        slug,
-      ]);
+      const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
 
       if (res.rows.length > 0) {
         const record = res.rows[0];
@@ -247,8 +225,7 @@ async function logAccess(ip: string, ua: string, slug: string, url: string) {
   if (process.env.LOGGING === "off") return;
 
   const botUA = ["apex/ping/v1.0"];
-  if (process.env.BOT_LOGGING === "off" && (isbot(ua) || botUA.includes(ua)))
-    return;
+  if (process.env.BOT_LOGGING === "off" && (isbot(ua) || botUA.includes(ua))) return;
 
   let linkData;
   try {

@@ -1,15 +1,17 @@
 {
   "name": "hack.af",
   "version": "1.0.0",
+  "private": true,
   "description": "Postgres Based Link Shortener for Hack Club",
-  "repository": "https://github.com/hackclub/hack.af",
-  "author": "Mingjie Jiang<jiang@mingjie.info>",
   "license": "MIT",
+  "author": "Mingjie Jiang<jiang@mingjie.info>",
+  "repository": "https://github.com/hackclub/hack.af",
   "type": "module",
   "scripts": {
     "start": "bun src/app.ts",
     "dev": "NODE_ENV=development bun --watch src/app.ts",
-    "docker-dev": "docker compose -f compose.dev.yml up -d"
+    "docker-dev": "docker compose -f compose.dev.yml up -d",
+    "fmt": "oxfmt"
   },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
@@ -30,7 +32,6 @@
     "@types/bun": "^1.4.2",
     "oxfmt": "^0.71.0"
   },
-  "private": true,
   "peerDependencies": {
     "typescript": "^5.9.3"
   }

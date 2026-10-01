@@ -7,4 +7,3 @@ services:
       POSTGRES_DB: hackaf
     ports:
       - "5432:5432"
-    

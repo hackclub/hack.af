@@ -8,30 +8,30 @@
 
 1. Clone the repository:
 
-    ```fish
-    git clone https://hackclub.com/hackclub/hack.af.git
-    cd hack.af
-    ```
+   ```fish
+   git clone https://hackclub.com/hackclub/hack.af.git
+   cd hack.af
+   ```
 
 2. Install dependencies:
 
-    ```fish
-    bun i
-    ```
+   ```fish
+   bun i
+   ```
 
 3. Clone `.env.example` to `.env` and fill in the required environment variables.
 
 4. Start the postgres db:
 
-    ```fish
-    bun run docker-dev
-    ```
+   ```fish
+   bun run docker-dev
+   ```
 
 5. Start the development server!
 
-    ```fish
-    bun dev
-    ```
+   ```fish
+   bun dev
+   ```
 
 ## Usage
 

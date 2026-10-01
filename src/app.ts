@@ -1,4 +1,3 @@
-
 import { incrementMetric, initGraphite } from "./metrics.ts";
 import { initializeDatabase } from "./db.ts";
 import { InitSlackApp } from "./Slack.ts";

@@ -78,4 +78,4 @@ export default function isStaffMember(userId: string) {
     "U07ULNFPQ4T", // lynn
   ]);
   return allowedUsers.has(userId);
-};
+}

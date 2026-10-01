@@ -31,10 +31,7 @@ export function InitSlackApp() {
       newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, "");
       let existingRes;
       try {
-        existingRes = await client.query(
-          `SELECT * FROM "Links" WHERE slug = $1`,
-          [slug],
-        );
+        existingRes = await client.query(`SELECT * FROM "Links" WHERE slug = $1`, [slug]);
       } catch (error) {
         console.error("Database error during SELECT:", error);
         throw new Error("Error checking for existing slug");
@@ -48,25 +45,17 @@ export function InitSlackApp() {
       const isUpdate = existingRes && existingRes.rowCount > 0;
 
       if (isUpdate) {
-        const lastDestination = decodeURIComponent(
-          existingRes.rows[0].destination,
-        );
+        const lastDestination = decodeURIComponent(existingRes.rows[0].destination);
         try {
-          await client.query(
-            `UPDATE "Links" SET destination = $1 WHERE slug = $2`,
-            [newDestination, slug],
-          );
+          await client.query(`UPDATE "Links" SET destination = $1 WHERE slug = $2`, [
+            newDestination,
+            slug,
+          ]);
 
           // Invalidate the cache entry since we've updated the slug such that it reloads next request
           cache.delete(slug);
 
-          await insertSlugHistory(
-            slug,
-            newDestination,
-            "Updated",
-            "",
-            command.user_id,
-          );
+          await insertSlugHistory(slug, newDestination, "Updated", "", command.user_id);
           return {
             text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
             blocks: [
@@ -100,13 +89,7 @@ export function InitSlackApp() {
             [Math.random().toString(36).substring(2, 15), slug, newDestination],
           );
 
-          await insertSlugHistory(
-            slug,
-            newDestination,
-            "Created",
-            "",
-            command.user_id,
-          );
+          await insertSlugHistory(slug, newDestination, "Created", "", command.user_id);
 
           return {
             text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
@@ -144,8 +127,7 @@ export function InitSlackApp() {
         };
       }
 
-      const isURL =
-        searchTerm.startsWith("http://") || searchTerm.startsWith("https://");
+      const isURL = searchTerm.startsWith("http://") || searchTerm.startsWith("https://");
       let searchQuery = "";
       let queryParams = [];
       const similarityThreshold = 0.3;
@@ -244,8 +226,7 @@ export function InitSlackApp() {
       let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
 
       if (isStaff) {
-        msg +=
-          "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
+        msg += "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
         blockMsg +=
           "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
       }
@@ -330,9 +311,7 @@ export function InitSlackApp() {
               text: commandName
                 ? generateHelpText(commandName as keyof typeof commands)
                 : Object.keys(commands)
-                    .map((key) =>
-                      generateHelpText(key as keyof typeof commands),
-                    )
+                    .map((key) => generateHelpText(key as keyof typeof commands))
                     .join("\n\n"),
             },
           },
@@ -350,8 +329,7 @@ export function InitSlackApp() {
     }
 
     function generateHelpText(commandName: keyof typeof commands) {
-      const { usage, helpEntry, parameters, staffRequired } =
-        commands[commandName]!;
+      const { usage, helpEntry, parameters, staffRequired } = commands[commandName]!;
       let helpText = `\`${usage}\``;
       if (staffRequired) {
         helpText += `: (*Admin only*)`;
@@ -457,8 +435,7 @@ export function InitSlackApp() {
         staffRequired: true,
         helpEntry: "Retrieve IP addresses for a specific slug.",
         usage: "/hack.af geolocation [slug-name]",
-        parameters:
-          "[slug-name]: The slug you want to retrieve IP addresses for.",
+        parameters: "[slug-name]: The slug you want to retrieve IP addresses for.",
       },
     };
 
@@ -481,10 +458,7 @@ export function InitSlackApp() {
 
     const acceptsVariableArguments = commandEntry.arguments.includes(-1);
 
-    if (
-      !acceptsVariableArguments &&
-      !commandEntry.arguments.includes(args.length - 1)
-    )
+    if (!acceptsVariableArguments && !commandEntry.arguments.includes(args.length - 1))
       return await respond({
         text: `The command accepts ${commandEntry.arguments.join(", ")} arguments, but you supplied ${args.length - 1}. Please check your formatting. \`${originalCommand}\``,
         response_type: "ephemeral",
@@ -500,9 +474,7 @@ export function InitSlackApp() {
       } else {
         result = acceptsVariableArguments
           ? await commandEntry.run(...args.slice(1))
-          : await commandEntry.run(
-              ...args.slice(1, commandEntry.arguments[0]! + 1),
-            );
+          : await commandEntry.run(...args.slice(1, commandEntry.arguments[0]! + 1));
 
         result.blocks.push({
           type: "context",
@@ -585,11 +557,7 @@ async function getSlugHistory(slug: string) {
     console.log("Query result rows:", res.rows);
 
     if (res.rows.length === 0) {
-      console.log(
-        "No records found for slug in 'slughistory':",
-        slug,
-        ". Fetching from 'Log'...",
-      );
+      console.log("No records found for slug in 'slughistory':", slug, ". Fetching from 'Log'...");
 
       let logResult = await client.query(
         `
@@ -613,9 +581,7 @@ async function getSlugHistory(slug: string) {
         const newDestination = logData["URL"];
         const date = logData["Descriptive Timestamp"];
 
-        console.log(
-          `Found slug=${slug} in "Log". Inserting into "slughistory"...`,
-        );
+        console.log(`Found slug=${slug} in "Log". Inserting into "slughistory"...`);
 
         await client.query(
           `
@@ -652,8 +618,7 @@ async function getSlugHistory(slug: string) {
 
 async function auditChanges(date1: string, date2: string, limit = "50") {
   const parsedLimit = Number.parseInt(limit, 10);
-  const effectiveLimit =
-    Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
+  const effectiveLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
 
   if (!date1 || !date2) {
     console.error(
@@ -735,10 +700,7 @@ async function auditChanges(date1: string, date2: string, limit = "50") {
   }
 }
 
-async function getGeolocation(
-  command: { text: string; user_id: string },
-  SlackApp: App,
-) {
+async function getGeolocation(command: { text: string; user_id: string }, SlackApp: App) {
   let slug: string | undefined = undefined;
   try {
     const tempslug = command.text.split(" ")[1];
@@ -785,13 +747,7 @@ async function getGeolocation(
         token: process.env.SLACK_BOT_TOKEN,
       });
 
-      await insertSlugHistory(
-        slug,
-        "Geolocation data retrieved",
-        "Used",
-        "",
-        command.user_id,
-      );
+      await insertSlugHistory(slug, "Geolocation data retrieved", "Used", "", command.user_id);
 
       return {
         text: `The geolocation data for slug ${slug} has been sent to your direct messages.`,
@@ -830,21 +786,13 @@ function formatLogData(logData: any, clicks: number) {
 async function getMetrics(slug: string) {
   try {
     console.log(`Getting metrics for slug: ${slug}`);
-    const logRes = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [
-      slug,
-    ]);
+    const logRes = await client.query('SELECT * FROM "Log" WHERE "Slug"=$1', [slug]);
     console.log("Log Query result:", logRes);
 
-    const linkRes = await client.query(
-      'SELECT "Clicks" FROM "Links" WHERE "slug"=$1',
-      [slug],
-    );
+    const linkRes = await client.query('SELECT "Clicks" FROM "Links" WHERE "slug"=$1', [slug]);
     console.log("Link Query result:", linkRes);
 
-    if (
-      logRes.rows.length > 0 ||
-      (linkRes.rows.length > 0 && linkRes.rows[0].Clicks > 0)
-    ) {
+    if (logRes.rows.length > 0 || (linkRes.rows.length > 0 && linkRes.rows[0].Clicks > 0)) {
       const logData = logRes.rows.length > 0 ? logRes.rows[0] : null;
       const clicks = linkRes.rows.length > 0 ? linkRes.rows[0].Clicks : 0;
 
@@ -896,10 +844,7 @@ async function getMetrics(slug: string) {
   }
 }
 
-function formatHistory(
-  history: any[] | { text: string; response_type: string },
-  note: string,
-) {
+function formatHistory(history: any[] | { text: string; response_type: string }, note: string) {
   console.log("history: " + history);
 
   if (!Array.isArray(history)) {
