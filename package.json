@@ -8,7 +8,10 @@
   "type": "module",
   "dependencies": {
     "@slack/bolt": "^4.7.3",
-    "dotenv": "^17.4.2",
+    "@slack/types": "^3.1.0",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1",
+    "@types/response-time": "^2.3.9",
     "express": "^5.2.1",
     "hot-shots": "^17.1.1",
     "isbot": "^5.2.2",

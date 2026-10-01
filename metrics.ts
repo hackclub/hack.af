@@ -1,6 +1,4 @@
 import { StatsD } from "hot-shots"
-import dotenv from 'dotenv';
-dotenv.config();
 
 const graphite = Bun.env.GRAPHITE_HOST
 
@@ -15,5 +13,5 @@ const options = {
 }
 
 const metrics = new StatsD(options)
-
+  
 export default metrics;
