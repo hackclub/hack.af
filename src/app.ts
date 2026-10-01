@@ -1,24 +1,21 @@
 import pg from "pg";
-
-const { Client } = pg;
 import express, { type Request, type Response } from "express";
 import { isbot } from "isbot";
 import querystring from "querystring";
 import { App } from "@slack/bolt";
 import responseTime from "response-time";
-import metrics from "./metrics.js";
 import { LRUCache } from "lru-cache";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { KnownBlock } from "@slack/types";
 import isStaffMember from "./StaffMembers.js";
+import { incrementMetric, initGraphite, timingMetric } from "./metrics.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const cache_ttl_milliseconds = 60 * 1000; // 1 minute
 const cache = new LRUCache({
   max: parseInt(Bun.env.CACHE_SIZE ?? "500", 10),
-  ttl: cache_ttl_milliseconds,
+  ttl: parseInt(Bun.env.CACHE_TTL ?? "60", 10) * 1000, // in seconds, 1 minute default
 });
 
 const SlackApp = new App({
@@ -35,7 +32,7 @@ async function connectToDatabase() {
 
   while (attempt < maxRetries) {
     try {
-      const client = new Client({
+      const client = new pg.Client({
         connectionString,
       });
       await client.connect();
@@ -57,14 +54,14 @@ async function connectToDatabase() {
 }
 
 let client: pg.Client;
-(async () => {
+async function initializeDatabase() {
   try {
     client = await connectToDatabase();
   } catch (error) {
     console.error("Could not establish a database connection:", error);
     process.exit(1);
   }
-})();
+}
 
 const app = express();
 
@@ -73,18 +70,24 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const port = Bun.env.PORT || 3000;
-app.listen(port, () => {
-  console.log("Hack.club is up and running on port", port);
-});
+function initializeApp() {
+  const port = Bun.env.PORT || 3000;
+  try {
+    app.listen(port, () => {
+      console.log("hack.af is up and running on port", port);
+    });
+  } catch (error) {
+    console.error("Error starting Express:", error);
+  }
+}
 
 app.use(
   responseTime(function (req: Request, res: Response, time: number) {
     const reqTrace = req.method + "-" + res.statusCode;
     const timingStatKey = `http.response.${reqTrace}`;
     const codeStatKey = `http.response.${reqTrace}`;
-    metrics.timing(timingStatKey, time);
-    metrics.increment(codeStatKey, 1);
+    timingMetric(timingStatKey, time);
+    incrementMetric(codeStatKey, 1);
   }),
 );
 
@@ -556,7 +559,7 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     });
 
   try {
-    metrics.increment(`botcommands.${args[0]}.attempt`, 1);
+    incrementMetric(`botcommands.${args[0]}.attempt`, 1);
 
     let result;
     console.log("Command entry:", commandEntry);
@@ -581,9 +584,9 @@ SlackApp.command("/hack.af", async ({ command, ack, respond }) => {
     }
     await respondEphemeral(respond, result);
 
-    metrics.increment(`botcommands.${args[0]}.success`, 1);
+    incrementMetric(`botcommands.${args[0]}.success`, 1);
   } catch (error: unknown) {
-    metrics.increment(`botcommands.${args[0]}.error`, 1);
+    incrementMetric(`botcommands.${args[0]}.error`, 1);
 
     await respond({
       text: `There was an error processing your request: ${error instanceof Error ? error.message : "Unknown error"}. \`${originalCommand}\``,
@@ -779,11 +782,11 @@ function combineQueries(
 const lookup = async (slug: string) => {
   try {
     if (cache.has(slug)) {
-      metrics.increment("lookup.cache.hit", 1);
+      incrementMetric("lookup.cache.hit", 1);
       //console.log(cache.get(slug));
       return cache.get(slug);
     } else {
-      metrics.increment("lookup.cache.miss", 1);
+      incrementMetric("lookup.cache.miss", 1);
       console.log("Cache miss");
       const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [
         slug,
@@ -1132,7 +1135,10 @@ async function getSlugHistory(slug: string) {
   }
 }
 
-function formatHistory(history: any[] | { text: string; response_type: string }, note: string) {
+function formatHistory(
+  history: any[] | { text: string; response_type: string },
+  note: string,
+) {
   console.log("history: " + history);
 
   if (!Array.isArray(history)) {
@@ -1277,7 +1283,7 @@ async function auditChanges(date1: string, date2: string, limit = "50") {
 }
 
 async function getGeolocation(command: { text: string; user_id: string }) {
-    let slug: string | undefined = undefined;
+  let slug: string | undefined = undefined;
   try {
     const tempslug = command.text.split(" ")[1];
     if (tempslug) {
@@ -1376,10 +1382,12 @@ function forceHttps(req: Request, res: Response, next: Function) {
   next();
 }
 
-
-
+// Startup everything
 (async () => {
+  await initializeDatabase();
+  initGraphite();
   await SlackApp.start();
+  initializeApp();
   console.log("Hack.club Slack is running!");
-  metrics.increment("hack.af.start", 1);
+  incrementMetric("hack.af.start", 1);
 })();

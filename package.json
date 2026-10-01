@@ -1,11 +1,15 @@
 {
   "name": "hack.af",
   "version": "1.0.0",
-  "description": "Airtable Based Link Shortener for Hack Club",
+  "description": "Postgres Based Link Shortener for Hack Club",
   "repository": "https://github.com/hackclub/hack.af",
   "author": "Mingjie Jiang<jiang@mingjie.info>",
   "license": "MIT",
   "type": "module",
+  "scripts": {
+    "start": "bun src/app.ts",
+    "dev": "bun --watch src/app.ts"
+  },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
     "@slack/types": "^3.1.0",
@@ -21,13 +25,8 @@
     "response-time": "^2.3.4",
     "url": "^0.11.4"
   },
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
-  },
   "devDependencies": {
-    "@types/bun": "^1.4.2",
-    "nodemon": "^3.1.14"
+    "@types/bun": "^1.4.2"
   },
   "private": true,
   "peerDependencies": {
