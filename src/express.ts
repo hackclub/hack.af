@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // Middleware
-if (Bun.env.NODE_ENV !== "development") {
+if (Bun.env.NODE_ENV === "production") {
   app.use(forceHttps);
 }
 app.use(express.static(path.join(__dirname, "public")));

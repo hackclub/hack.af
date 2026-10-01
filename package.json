@@ -27,7 +27,8 @@
     "url": "^0.11.4"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.2"
+    "@types/bun": "^1.4.2",
+    "oxfmt": "^0.71.0"
   },
   "private": true,
   "peerDependencies": {
