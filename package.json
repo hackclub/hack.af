@@ -11,7 +11,8 @@
     "start": "bun src/app.ts",
     "dev": "NODE_ENV=development bun --watch src/app.ts",
     "docker-dev": "docker compose -f compose.dev.yml up -d",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
@@ -30,7 +31,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "oxfmt": "^0.71.0"
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"

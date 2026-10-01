@@ -28,7 +28,7 @@ export function InitSlackApp() {
     const originalCommand = `${command.command} ${command.text}`;
     const isStaff = isStaffMember(command.user_id);
     async function changeSlug(slug: string, newDestination: string) {
-      newDestination = newDestination.replace(/^[\*_`]+|[\*_`]+$/g, "");
+      newDestination = newDestination.replace(/^[*_`]+|[*_`]+$/g, "");
       let existingRes;
       try {
         existingRes = await client.query(`SELECT * FROM "Links" WHERE slug = $1`, [slug]);
