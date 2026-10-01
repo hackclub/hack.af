@@ -5,11 +5,11 @@ let metrics: StatsD | null = null;
 export function initGraphite() {
   const graphite = Bun.env.GRAPHITE_HOST;
 
-  if (graphite == null) {
+  if (graphite == null || graphite === "") {
     console.warn("Graphite host not configured!");
     return;
   }
-  
+
   const options = {
     host: graphite,
     port: 8125,

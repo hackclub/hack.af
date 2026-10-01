@@ -3,10 +3,8 @@ import pg from "pg";
 const connectionString = process.env.DATABASE_URL;
 
 async function connectToDatabase() {
-  let attempt = 0;
-  const maxRetries = 5;
 
-  while (attempt < maxRetries) {
+  for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const client = new pg.Client({
         connectionString,
@@ -19,14 +17,13 @@ async function connectToDatabase() {
         `Database connection attempt ${attempt + 1} failed:`,
         error,
       );
-      attempt++;
       const delay = Math.pow(2, attempt) * 1000;
       console.log(`Retrying in ${delay / 1000} seconds...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
-  throw new Error("Failed to connect to the database after multiple attempts.");
+  throw new Error("Failed to connect to the database after 5 attempts.");
 }
 
 export let client: pg.Client;

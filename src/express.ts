@@ -8,16 +8,15 @@ import { incrementMetric, timingMetric } from "./metrics";
 import { cache } from "./cache";
 import { client } from "./db";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const app = express();
 
+// Middleware
 if (Bun.env.NODE_ENV !== "development") {
   app.use(forceHttps);
 }
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(
   responseTime(function (req: Request, res: Response, time: number) {
     const reqTrace = req.method + "-" + res.statusCode;
@@ -28,7 +27,8 @@ app.use(
   }),
 );
 
-app.get("/ping", (res: Response) => {
+// Routes
+app.get("/ping", (_req, res: Response) => {
   res.send("pong");
 });
 
@@ -43,7 +43,7 @@ app.get("/vip/:id", (req, res) => {
   );
 });
 
-app.get("/glitch", (res: Response) => {
+app.get("/glitch", (_req, res: Response) => {
   res.set("Content-Type", "text/html");
   res.send(
     Buffer.from(
@@ -94,7 +94,7 @@ app.get("/f/:form", (req, res) => {
   res.redirect(302, "https://forms.hackclub.com/" + req.params.form);
 });
 
-app.get("/programs", (res: Response) => {
+app.get("/programs", (_req,res: Response) => {
   res.redirect(302, "https://hackclub.com/programs");
 });
 
@@ -174,6 +174,7 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
     });
 });
 
+// Helper Functions
 function combineQueries(
   q1: Record<string, unknown>,
   q2: Record<string, unknown>,
