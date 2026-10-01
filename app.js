@@ -1230,6 +1230,7 @@ const isStaffMember = async (userId) => {
         'U078VN0UU2K', // freddie
         'U09AYT4B1JB', // wally
         'U07ULNFPQ4T', // lynn
+        'U09A2B4JQ0G', // will k
     ]);
     return allowedUsers.has(userId)
 };
