@@ -1,9 +1,11 @@
+# workspace settings
 .vscode
 .DS_Store
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-.env
 
+# dependencies
+node_modules/
+
+# env vars
+.env
+!.env.example
 .vercel
