@@ -1,4 +1,4 @@
-const isStaffMember = async (userId: string) => {
+export default function isStaffMember(userId: string) {
   const allowedUsers = new Set([
     "U04QH1TTMBP", // graham
     "U0C7B14Q3", // max
@@ -79,5 +79,3 @@ const isStaffMember = async (userId: string) => {
   ]);
   return allowedUsers.has(userId);
 };
-
-export default isStaffMember;

@@ -4,10 +4,11 @@ on:
   - pull_request
 
 jobs:
-  install:
+  CI:
     name: Install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install
+      - run: bun run tsc --noEmit
