@@ -15,7 +15,7 @@
     "lint": "oxlint"
   },
   "dependencies": {
-    "@slack/bolt": "^4.7.3",
+    "@slack/bolt": "^5.1.0",
     "@slack/types": "^3.2.0",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",
