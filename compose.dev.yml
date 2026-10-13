@@ -5,5 +5,7 @@ services:
       POSTGRES_USER: hackaf
       POSTGRES_PASSWORD: hackaf
       POSTGRES_DB: hackaf
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
     ports:
       - "5432:5432"
