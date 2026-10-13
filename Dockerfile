@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Start the application
-CMD ["bun", "app.js"]
+CMD ["bun", "run", "start"]

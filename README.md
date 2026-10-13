@@ -1,22 +1,41 @@
-# hack.af
+<div align="center">
+<img src="./public/favicon.ico" alt="hack.af logo" width="100" height="100">
+<h1>hack.af</h1>
+<a href="https://hackclub.com">Hack Club</a>’s Link Shortener
+</div>
 
-> [Hack Club](https://hackclub.com)’s Link Shortener
+## Quick Start (Development)
 
-## Setup
+1. Clone the repository:
 
-To be updated, coming soon!
+   ```fish
+   git clone https://hackclub.com/hackclub/hack.af.git
+   cd hack.af
+   ```
 
-<!---
-* Please make a copy of the template Airtable Base: [https://go.mingjie.info/template](https://go.mingjie.info/template)
-* Please also grab the Airtable API Key & Base Key from the API documentations. Head [here](https://airtable.com/api) and click on the base you just created to get started.
-* Set `AIRTABLE_BASE` to your Base Key, and `AIRTABLE_KEY` to your API Key.
-* Set `LOGGING` to `on` if you want to enable logging, `off` if otherwise.
-* Set `BOT_LOGGING` to `on` if you want to enable logging for crawlers, `off` if otherwise.
-* Set `CACHE_EXPIRATION` to the number of seconds you want the local cache to be valid.
--->
-## Using
+2. Install dependencies:
 
-All links will be routed through a 302 (Temporary Redirect). Simply visit `example.com/slug` to get redirected.
+   ```fish
+   bun i
+   ```
+
+3. Clone `.env.example` to `.env` and fill in the required environment variables.
+
+4. Start the postgres db:
+
+   ```fish
+   bun run docker-dev
+   ```
+
+5. Start the development server!
+
+   ```fish
+   bun dev
+   ```
+
+## Usage
+
+All links are routed through a 302 (Temporary Redirect). Simply visit `hack.af/slug` to get redirected. 404's are pointed to `hackclub.com/404`.
 
 ## License
 

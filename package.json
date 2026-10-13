@@ -1,28 +1,40 @@
 {
   "name": "hack.af",
   "version": "1.0.0",
-  "description": "Airtable Based Link Shortener for Hack Club",
-  "repository": "https://github.com/hackclub/hack.af",
-  "author": "Mingjie Jiang<jiang@mingjie.info>",
+  "private": true,
+  "description": "Postgres Based Link Shortener for Hack Club",
   "license": "MIT",
+  "author": "Mingjie Jiang<jiang@mingjie.info>",
+  "repository": "https://github.com/hackclub/hack.af",
   "type": "module",
+  "scripts": {
+    "start": "bun src/app.ts",
+    "dev": "NODE_ENV=development bun --watch src/app.ts",
+    "docker-dev": "docker compose -f compose.dev.yml up -d",
+    "fmt": "oxfmt",
+    "lint": "oxlint"
+  },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
-    "dotenv": "^17.4.2",
+    "@slack/types": "^3.2.0",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1",
+    "@types/response-time": "^2.3.9",
     "express": "^5.2.1",
+    "hot-shots": "^17.1.1",
     "isbot": "^5.2.2",
-    "lru-cache": "^11.5.2",
-    "node-statsd": "^0.1.1",
+    "lru-cache": "^11.5.3",
     "path": "^0.12.7",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "response-time": "^2.3.4",
     "url": "^0.11.4"
   },
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
-  },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@types/bun": "^1.4.2",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
   }
 }
