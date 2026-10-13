@@ -76,6 +76,8 @@ export default function isStaffMember(userId: string) {
     "U078VN0UU2K", // freddie
     "U09AYT4B1JB", // wally
     "U07ULNFPQ4T", // lynn
+    "U09A2B4JQ0G", // will k
+    "U07E6TW9DL0", // dani (dld)
   ]);
   return allowedUsers.has(userId);
 }
