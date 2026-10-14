@@ -1,21 +1,53 @@
 import { clientEntry, on, type Handle } from "remix/component";
 import { copyText } from "./clipboard.ts";
-import { Icon } from "./icons.tsx";
-import { button, buttonSize, kbd } from "./styles.ts";
+import { Icon, type IconName } from "./icons.tsx";
+import { button, buttonSize, kbd, visuallyHidden } from "./styles.ts";
+
+type CopyState = "idle" | "copied" | "failed";
+
+type CopyButtonProps = {
+  value: string;
+  label?: string;
+  size?: "sm" | "md";
+  iconOnly?: boolean;
+  // A single key that copies from anywhere on the page, like "c"
+  shortcut?: string;
+};
+
+// How each state looks and what it announces; a null text keeps the button's own label
+const STATES: Record<
+  CopyState,
+  { icon: IconName; text: string | null; announce: string; color?: string }
+> = {
+  idle: { icon: "copy", text: null, announce: "" },
+  copied: {
+    icon: "check",
+    text: "Copied",
+    announce: "Copied to clipboard",
+    color: "var(--success)",
+  },
+  failed: {
+    icon: "alert",
+    text: "Couldn’t copy",
+    announce: "Couldn’t copy",
+    color: "var(--danger)",
+  },
+};
+
+function sizeMixFor(size: "sm" | "md", iconOnly: boolean) {
+  if (iconOnly) return size === "sm" ? buttonSize.iconSm : buttonSize.icon;
+  return size === "sm" ? buttonSize.sm : undefined;
+}
+
+function isTyping(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+}
 
 export const CopyButton = clientEntry(
   import.meta.url,
-  function CopyButton(
-    handle: Handle<{
-      value: string;
-      label?: string;
-      size?: "sm" | "md";
-      iconOnly?: boolean;
-      // A single key that copies from anywhere on the page, like "c"
-      shortcut?: string;
-    }>,
-  ) {
-    let state: "idle" | "copied" | "failed" = "idle";
+  function CopyButton(handle: Handle<CopyButtonProps>) {
+    let state: CopyState = "idle";
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     handle.signal.addEventListener("abort", () => clearTimeout(timer));
@@ -35,34 +67,23 @@ export const CopyButton = clientEntry(
       }, 1600);
     }
 
+    function onKeydown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== handle.props.shortcut) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
+      if (isTyping(event.target) || document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      void copy();
+    }
+
     handle.queueTask(() => {
-      if (!handle.props.shortcut) return;
-      window.addEventListener(
-        "keydown",
-        (event) => {
-          if (event.key.toLowerCase() !== handle.props.shortcut) return;
-          if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
-          const target = event.target as HTMLElement | null;
-          const typing =
-            target &&
-            (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-          if (typing || document.querySelector("dialog[open]")) return;
-          event.preventDefault();
-          void copy();
-        },
-        { signal: handle.signal },
-      );
+      if (handle.props.shortcut) {
+        window.addEventListener("keydown", onKeydown, { signal: handle.signal });
+      }
     });
 
     return () => {
       const { value, label = "Copy", size = "md", iconOnly = false, shortcut } = handle.props;
-      const sizeMix = iconOnly
-        ? size === "sm"
-          ? buttonSize.iconSm
-          : buttonSize.icon
-        : size === "sm"
-          ? buttonSize.sm
-          : undefined;
+      const look = STATES[state];
 
       return (
         <button
@@ -70,40 +91,22 @@ export const CopyButton = clientEntry(
           aria-label={iconOnly ? `${label}: ${value}` : undefined}
           title={iconOnly ? label : undefined}
           aria-keyshortcuts={shortcut}
-          mix={[iconOnly ? button.ghost : button.secondary, sizeMix, on("click", copy)]}
-          style={
-            state === "copied"
-              ? { color: "var(--success)" }
-              : state === "failed"
-                ? { color: "var(--danger)" }
-                : undefined
-          }
+          mix={[
+            iconOnly ? button.ghost : button.secondary,
+            sizeMixFor(size, iconOnly),
+            on("click", copy),
+          ]}
+          style={look.color ? { color: look.color } : undefined}
         >
-          <Icon
-            name={state === "copied" ? "check" : state === "failed" ? "alert" : "copy"}
-            size={size === "sm" ? 13 : 14}
-          />
-          {iconOnly ? null : (
-            <span>
-              {state === "copied" ? "Copied" : state === "failed" ? "Couldn’t copy" : label}
-            </span>
-          )}
+          <Icon name={look.icon} size={size === "sm" ? 13 : 14} />
+          {iconOnly ? null : <span>{look.text ?? label}</span>}
           {shortcut && !iconOnly ? (
             <span mix={kbd} aria-hidden="true" style={{ marginLeft: "2px" }}>
               {shortcut.toUpperCase()}
             </span>
           ) : null}
-          <span
-            role="status"
-            style={{
-              position: "absolute",
-              width: "1px",
-              height: "1px",
-              overflow: "hidden",
-              clip: "rect(0 0 0 0)",
-            }}
-          >
-            {state === "copied" ? "Copied to clipboard" : state === "failed" ? "Couldn’t copy" : ""}
+          <span role="status" mix={visuallyHidden}>
+            {look.announce}
           </span>
         </button>
       );

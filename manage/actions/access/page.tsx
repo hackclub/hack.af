@@ -1,6 +1,7 @@
 import { css, type Handle } from "remix/component";
 import type { Person } from "../../../src/people.ts";
 import type { StaffAuditEntry, StaffMember } from "../../../src/staff.ts";
+import type { Viewer } from "../../middleware/auth.ts";
 import { routes } from "../../routes.ts";
 import { Avatar } from "../../ui/public/avatar.tsx";
 import { ConfirmDialog } from "../../ui/public/confirm-dialog.tsx";
@@ -144,6 +145,90 @@ const auditStyle = css({
   },
 });
 
+function isViewer(member: StaffMember, viewer: Viewer) {
+  return (
+    (member.slackId !== null && member.slackId === viewer.slackId) ||
+    (member.email !== null && member.email === viewer.email)
+  );
+}
+
+// People from the original allowlist have no meaningful "added" date
+function addedLabel(member: StaffMember, people: Record<string, Person>) {
+  if (member.addedBy === "migration" || !member.addedAt) return { text: "—", title: undefined };
+  const addedBy = people[member.addedBy]?.name ?? member.addedBy;
+  return {
+    text: relativeTime(member.addedAt),
+    title: `${formatDateTime(member.addedAt)} by ${addedBy}`,
+  };
+}
+
+function StaffRow(
+  handle: Handle<{
+    member: StaffMember;
+    viewer: Viewer;
+    people: Record<string, Person>;
+    action: string;
+  }>,
+) {
+  return () => {
+    const { member, viewer, people, action } = handle.props;
+    const identity = member.slackId ?? member.email;
+    const isYou = isViewer(member, viewer);
+    const added = addedLabel(member, people);
+    const removable = member.id !== 0 && !isYou && !member.bootstrap;
+
+    return (
+      <li mix={rowStyle}>
+        <span class="person">
+          <Avatar
+            name={member.name}
+            id={identity}
+            image={people[identity ?? ""]?.image}
+            size={26}
+          />
+          <span class="name">{member.name}</span>
+          {isYou ? (
+            <span mix={badgeStyle} data-tone="accent">
+              You
+            </span>
+          ) : null}
+          {member.bootstrap ? (
+            <span mix={badgeStyle} title="Set in MANAGE_BOOTSTRAP_ADMINS. Always has access.">
+              <Icon name="lock" size={10} />
+              Break-glass
+            </span>
+          ) : null}
+        </span>
+        <IdentityCell value={member.slackId} />
+        <IdentityCell value={member.email} />
+        <span class="added" title={added.title}>
+          {added.text}
+        </span>
+        <span class="act">
+          {removable ? (
+            <ConfirmDialog
+              triggerLabel="Remove"
+              triggerVariant="ghost"
+              triggerSize="sm"
+              title={`Remove ${member.name}?`}
+              description="They’ll be signed out of the dashboard right away and lose the staff-only Slack commands. This is posted to the audit channel."
+              confirmLabel="Remove access"
+              action={action}
+              fields={{ intent: "remove", id: String(member.id) }}
+            />
+          ) : null}
+        </span>
+      </li>
+    );
+  };
+}
+
+function IdentityCell(handle: Handle<{ value: string | null }>) {
+  return () => (
+    <span class={handle.props.value ? "mono" : "mono muted"}>{handle.props.value ?? "—"}</span>
+  );
+}
+
 export function AccessPage(handle: Handle<AccessPageProps>) {
   return () => {
     const { staff, audit, people, values, error, viewer, toast } = handle.props;
@@ -166,71 +251,15 @@ export function AccessPage(handle: Handle<AccessPageProps>) {
                 <span />
               </div>
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {staff.map((member) => {
-                  const isYou =
-                    (member.slackId !== null && member.slackId === viewer.slackId) ||
-                    (member.email !== null && member.email === viewer.email);
-                  const addedBy = people[member.addedBy]?.name ?? member.addedBy;
-                  return (
-                    <li key={`${member.id}:${member.slackId ?? member.email}`} mix={rowStyle}>
-                      <span class="person">
-                        <Avatar
-                          name={member.name}
-                          id={member.slackId ?? member.email}
-                          image={people[member.slackId ?? member.email ?? ""]?.image}
-                          size={26}
-                        />
-                        <span class="name">{member.name}</span>
-                        {isYou ? (
-                          <span mix={badgeStyle} data-tone="accent">
-                            You
-                          </span>
-                        ) : null}
-                        {member.bootstrap ? (
-                          <span
-                            mix={badgeStyle}
-                            title="Set in MANAGE_BOOTSTRAP_ADMINS. Always has access."
-                          >
-                            <Icon name="lock" size={10} />
-                            Break-glass
-                          </span>
-                        ) : null}
-                      </span>
-                      <span class={member.slackId ? "mono" : "mono muted"}>
-                        {member.slackId ?? "—"}
-                      </span>
-                      <span class={member.email ? "mono" : "mono muted"}>
-                        {member.email ?? "—"}
-                      </span>
-                      <span
-                        class="added"
-                        title={
-                          member.addedAt && member.addedBy !== "migration"
-                            ? `${formatDateTime(member.addedAt)} by ${addedBy}`
-                            : undefined
-                        }
-                      >
-                        {member.addedBy === "migration" || !member.addedAt
-                          ? "—"
-                          : relativeTime(member.addedAt)}
-                      </span>
-                      <span class="act">
-                        {member.id !== 0 && !isYou && !member.bootstrap ? (
-                          <ConfirmDialog
-                            triggerLabel="Remove"
-                            triggerVariant="ghost"
-                            triggerSize="sm"
-                            title={`Remove ${member.name}?`}
-                            description="They’ll be signed out of the dashboard right away and lose the staff-only Slack commands. This is posted to the audit channel."
-                            confirmLabel="Remove access"
-                            action={action}
-                            fields={{ intent: "remove", id: String(member.id) }}
-                          />
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
+                {staff.map((member) => (
+                  <StaffRow
+                    key={`${member.id}:${member.slackId ?? member.email}`}
+                    member={member}
+                    viewer={viewer}
+                    people={people}
+                    action={action}
+                  />
+                ))}
               </ul>
             </section>
 

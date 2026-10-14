@@ -328,13 +328,28 @@ export const QrDialog = clientEntry(
       }, 1600);
     }
 
+    function pickColor(value: string) {
+      change(() => {
+        color = value;
+        hexDraft = color.slice(1).toUpperCase();
+        transparent = false;
+      });
+    }
+
+    function typeHex(value: string) {
+      hexDraft = value.replace("#", "");
+      const match = HEX.exec(hexDraft);
+      if (match) change(() => (color = `#${match[1]!.toLowerCase()}`));
+    }
+
+    function resetHexDraft() {
+      hexDraft = color.slice(1).toUpperCase();
+      handle.update();
+    }
+
     return () => {
       const { matrix, label } = handle.props;
       const bg = background();
-      const box = matrix.size + padding * 2;
-      const lowContrast = bg !== "transparent" && luminance(bg) < 0.45;
-      // Image copying has no fallback outside HTTPS; text (SVG) does
-      const imageCopyOk = typeof window === "undefined" || canCopyImages();
 
       return (
         <>
@@ -377,220 +392,297 @@ export const QrDialog = clientEntry(
             </div>
 
             <div mix={bodyStyle}>
-              <div mix={stageStyle}>
-                <div mix={previewStyle} data-transparent={bg === "transparent" ? "" : undefined}>
-                  <svg
-                    role="img"
-                    aria-label={`Preview of the QR code for ${label}`}
-                    viewBox={`0 0 ${box} ${box}`}
-                    shape-rendering="crispEdges"
-                  >
-                    {bg === "transparent" ? null : <rect width={box} height={box} fill={bg} />}
-                    <path d={qrPath(matrix, padding)} fill="#000" />
-                  </svg>
-                </div>
-                <div mix={metaStyle}>
-                  <span>{format === "svg" ? "Vector" : `${pixels} × ${pixels}`}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{fileSize === null ? "…" : formatBytes(fileSize)}</span>
-                </div>
-              </div>
-
+              <QrPreview
+                matrix={matrix}
+                label={label}
+                padding={padding}
+                background={bg}
+                dimensions={format === "svg" ? "Vector" : `${pixels} × ${pixels}`}
+                fileSize={fileSize}
+              />
               <div>
-                <div mix={sectionStyle}>
-                  <span class="title" id={`${handle.id}-format`}>
-                    Format
-                  </span>
-                  <div
-                    role="radiogroup"
-                    aria-labelledby={`${handle.id}-format`}
-                    mix={segmentedStyle}
-                  >
-                    {FORMATS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={format === option.value ? "true" : "false"}
-                        mix={on("click", () => change(() => (format = option.value)))}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div mix={sectionStyle}>
-                  <span class="title" id={`${handle.id}-size`}>
-                    Size
-                  </span>
-                  <div role="radiogroup" aria-labelledby={`${handle.id}-size`} mix={segmentedStyle}>
-                    {SIZES.map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        role="radio"
-                        disabled={format === "svg"}
-                        aria-checked={format !== "svg" && pixels === size ? "true" : "false"}
-                        mix={on("click", () => change(() => (pixels = size)))}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div mix={sectionStyle}>
-                  <label class="title" for={`${handle.id}-padding`}>
-                    Padding
-                  </label>
-                  <div mix={rowStyle}>
-                    <input
-                      id={`${handle.id}-padding`}
-                      type="range"
-                      min="0"
-                      max="8"
-                      step="1"
-                      value={String(padding)}
-                      mix={[
-                        rangeStyle,
-                        on("input", (event) =>
-                          change(() => (padding = Number(event.currentTarget.value))),
-                        ),
-                      ]}
-                    />
-                    <label mix={fieldStyle} style={{ width: "52px", flex: "none" }}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="8"
-                        aria-label="Padding in modules"
-                        value={String(padding)}
-                        mix={on("input", (event) => {
-                          const value = Number(event.currentTarget.value);
-                          if (Number.isInteger(value) && value >= 0 && value <= 8) {
-                            change(() => (padding = value));
-                          }
-                        })}
-                      />
-                    </label>
-                  </div>
-                  {padding < 2 ? <span class="note">Some scanners need at least 2.</span> : null}
-                </div>
-
-                <div mix={sectionStyle}>
-                  <span class="title">Background</span>
-                  <div mix={rowStyle}>
-                    <label mix={fieldStyle} style={{ flex: 1 }}>
-                      <span
-                        mix={chipStyle}
-                        style={{
-                          background:
-                            bg === "transparent"
-                              ? "repeating-conic-gradient(#d9dce3 0 25%, #fff 0 50%) 0 0 / 8px 8px"
-                              : color,
-                        }}
-                      >
-                        <input
-                          type="color"
-                          aria-label="Pick background color"
-                          value={color}
-                          mix={on("input", (event) =>
-                            change(() => {
-                              color = event.currentTarget.value;
-                              hexDraft = color.slice(1).toUpperCase();
-                              transparent = false;
-                            }),
-                          )}
-                        />
-                      </span>
-                      {bg === "transparent" ? null : <span class="prefix">#</span>}
-                      <input
-                        aria-label="Background color hex"
-                        value={bg === "transparent" ? "Transparent" : hexDraft}
-                        disabled={bg === "transparent"}
-                        maxlength={7}
-                        spellcheck={false}
-                        style={{
-                          fontFamily: bg === "transparent" ? "inherit" : "var(--font-mono)",
-                          textTransform: bg === "transparent" ? "none" : "uppercase",
-                        }}
-                        mix={[
-                          on("input", (event) => {
-                            hexDraft = event.currentTarget.value.replace("#", "");
-                            const match = HEX.exec(hexDraft);
-                            if (match) change(() => (color = `#${match[1]!.toLowerCase()}`));
-                          }),
-                          on("blur", () => {
-                            hexDraft = color.slice(1).toUpperCase();
-                            handle.update();
-                          }),
-                        ]}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      aria-label="Transparent background"
-                      aria-pressed={bg === "transparent" ? "true" : "false"}
-                      title={
-                        format === "jpeg" ? "JPEG can’t be transparent" : "Transparent background"
-                      }
-                      disabled={format === "jpeg"}
-                      mix={[
-                        iconToggleStyle,
-                        on("click", () => change(() => (transparent = !transparent))),
-                      ]}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                        <rect
-                          x="0.5"
-                          y="0.5"
-                          width="13"
-                          height="13"
-                          rx="2.5"
-                          fill="none"
-                          stroke="currentColor"
-                        />
-                        <path d="M3 3h4v4H3zM7 7h4v4H7z" fill="currentColor" />
-                      </svg>
-                    </button>
-                  </div>
-                  {lowContrast ? (
-                    <span class="note">Dark backgrounds are hard for phones to scan.</span>
-                  ) : null}
-                </div>
+                <Segmented
+                  id={`${handle.id}-format`}
+                  title="Format"
+                  options={FORMATS}
+                  value={format}
+                  onChange={(value) => change(() => (format = value as Format))}
+                />
+                <Segmented
+                  id={`${handle.id}-size`}
+                  title="Size"
+                  options={SIZES.map((size) => ({ value: String(size), label: String(size) }))}
+                  value={format === "svg" ? null : String(pixels)}
+                  disabled={format === "svg"}
+                  onChange={(value) => change(() => (pixels = Number(value)))}
+                />
+                <PaddingField
+                  id={`${handle.id}-padding`}
+                  padding={padding}
+                  onChange={(value) => change(() => (padding = value))}
+                />
+                <BackgroundField
+                  background={bg}
+                  color={color}
+                  hexDraft={hexDraft}
+                  transparencyAllowed={format !== "jpeg"}
+                  onPick={pickColor}
+                  onHexInput={typeHex}
+                  onHexBlur={resetHexDraft}
+                  onToggleTransparent={() => change(() => (transparent = !transparent))}
+                />
               </div>
             </div>
 
-            <div mix={footerStyle}>
-              <span class="file">{filename()}</span>
-              <button
-                type="button"
-                disabled={!imageCopyOk && format !== "svg"}
-                title={
-                  !imageCopyOk && format !== "svg"
-                    ? "Copying images needs HTTPS. Download it, or copy as SVG."
-                    : format === "jpeg"
-                      ? "Clipboards only take PNG, so this copies a PNG"
-                      : undefined
-                }
-                mix={[button.secondary, buttonSize.sm, on("click", copy)]}
-              >
-                <Icon name={copyState === "copied" ? "check" : "copy"} size={13} />
-                {copyState === "copied"
-                  ? "Copied"
-                  : copyState === "failed"
-                    ? "Couldn’t copy"
-                    : "Copy"}
-              </button>
-              <button type="button" mix={[button.primary, buttonSize.sm, on("click", download)]}>
-                <Icon name="download" size={13} />
-                Download
-              </button>
-            </div>
+            <ExportFooter
+              filename={filename()}
+              format={format}
+              copyState={copyState}
+              onCopy={copy}
+              onDownload={download}
+            />
           </dialog>
         </>
       );
     };
   },
 );
+
+function QrPreview(
+  handle: Handle<{
+    matrix: QrMatrix;
+    label: string;
+    padding: number;
+    background: string;
+    dimensions: string;
+    fileSize: number | null;
+  }>,
+) {
+  return () => {
+    const { matrix, label, padding, background, dimensions, fileSize } = handle.props;
+    const box = matrix.size + padding * 2;
+    const transparent = background === "transparent";
+    return (
+      <div mix={stageStyle}>
+        <div mix={previewStyle} data-transparent={transparent ? "" : undefined}>
+          <svg
+            role="img"
+            aria-label={`Preview of the QR code for ${label}`}
+            viewBox={`0 0 ${box} ${box}`}
+            shape-rendering="crispEdges"
+          >
+            {transparent ? null : <rect width={box} height={box} fill={background} />}
+            <path d={qrPath(matrix, padding)} fill="#000" />
+          </svg>
+        </div>
+        <div mix={metaStyle}>
+          <span>{dimensions}</span>
+          <span aria-hidden="true">·</span>
+          <span>{fileSize === null ? "…" : formatBytes(fileSize)}</span>
+        </div>
+      </div>
+    );
+  };
+}
+
+function Segmented(
+  handle: Handle<{
+    id: string;
+    title: string;
+    options: { value: string; label: string }[];
+    value: string | null;
+    disabled?: boolean;
+    onChange: (value: string) => void;
+  }>,
+) {
+  return () => {
+    const { id, title, options, value, disabled = false, onChange } = handle.props;
+    return (
+      <div mix={sectionStyle}>
+        <span class="title" id={id}>
+          {title}
+        </span>
+        <div role="radiogroup" aria-labelledby={id} mix={segmentedStyle}>
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              disabled={disabled}
+              aria-checked={option.value === value ? "true" : "false"}
+              mix={on("click", () => onChange(option.value))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+}
+
+function PaddingField(
+  handle: Handle<{ id: string; padding: number; onChange: (value: number) => void }>,
+) {
+  return () => {
+    const { id, padding, onChange } = handle.props;
+    return (
+      <div mix={sectionStyle}>
+        <label class="title" for={id}>
+          Padding
+        </label>
+        <div mix={rowStyle}>
+          <input
+            id={id}
+            type="range"
+            min="0"
+            max="8"
+            step="1"
+            value={String(padding)}
+            mix={[rangeStyle, on("input", (event) => onChange(Number(event.currentTarget.value)))]}
+          />
+          <label mix={fieldStyle} style={{ width: "52px", flex: "none" }}>
+            <input
+              type="number"
+              min="0"
+              max="8"
+              aria-label="Padding in modules"
+              value={String(padding)}
+              mix={on("input", (event) => {
+                const value = Number(event.currentTarget.value);
+                if (Number.isInteger(value) && value >= 0 && value <= 8) onChange(value);
+              })}
+            />
+          </label>
+        </div>
+        {padding < 2 ? <span class="note">Some scanners need at least 2.</span> : null}
+      </div>
+    );
+  };
+}
+
+const TRANSPARENT_CHIP = "repeating-conic-gradient(#d9dce3 0 25%, #fff 0 50%) 0 0 / 8px 8px";
+
+function BackgroundField(
+  handle: Handle<{
+    background: string;
+    color: string;
+    hexDraft: string;
+    transparencyAllowed: boolean;
+    onPick: (value: string) => void;
+    onHexInput: (value: string) => void;
+    onHexBlur: () => void;
+    onToggleTransparent: () => void;
+  }>,
+) {
+  return () => {
+    const { background, color, hexDraft, transparencyAllowed } = handle.props;
+    const { onPick, onHexInput, onHexBlur, onToggleTransparent } = handle.props;
+    const transparent = background === "transparent";
+    const lowContrast = !transparent && luminance(background) < 0.45;
+
+    return (
+      <div mix={sectionStyle}>
+        <span class="title">Background</span>
+        <div mix={rowStyle}>
+          <label mix={fieldStyle} style={{ flex: 1 }}>
+            <span mix={chipStyle} style={{ background: transparent ? TRANSPARENT_CHIP : color }}>
+              <input
+                type="color"
+                aria-label="Pick background color"
+                value={color}
+                mix={on("input", (event) => onPick(event.currentTarget.value))}
+              />
+            </span>
+            {transparent ? (
+              <input aria-label="Background color" value="Transparent" disabled />
+            ) : (
+              <>
+                <span class="prefix">#</span>
+                <input
+                  aria-label="Background color hex"
+                  value={hexDraft}
+                  maxlength={7}
+                  spellcheck={false}
+                  style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase" }}
+                  mix={[
+                    on("input", (event) => onHexInput(event.currentTarget.value)),
+                    on("blur", onHexBlur),
+                  ]}
+                />
+              </>
+            )}
+          </label>
+          <button
+            type="button"
+            aria-label="Transparent background"
+            aria-pressed={transparent ? "true" : "false"}
+            title={transparencyAllowed ? "Transparent background" : "JPEG can’t be transparent"}
+            disabled={!transparencyAllowed}
+            mix={[iconToggleStyle, on("click", onToggleTransparent)]}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <rect
+                x="0.5"
+                y="0.5"
+                width="13"
+                height="13"
+                rx="2.5"
+                fill="none"
+                stroke="currentColor"
+              />
+              <path d="M3 3h4v4H3zM7 7h4v4H7z" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+        {lowContrast ? (
+          <span class="note">Dark backgrounds are hard for phones to scan.</span>
+        ) : null}
+      </div>
+    );
+  };
+}
+
+const COPY_LABELS = { idle: "Copy", copied: "Copied", failed: "Couldn’t copy" } as const;
+
+// Image copying has no fallback outside HTTPS; text (SVG) does
+function copyBlockedReason(format: Format) {
+  if (format === "svg" || typeof window === "undefined" || canCopyImages()) return null;
+  return "Copying images needs HTTPS. Download it, or copy as SVG.";
+}
+
+function ExportFooter(
+  handle: Handle<{
+    filename: string;
+    format: Format;
+    copyState: keyof typeof COPY_LABELS;
+    onCopy: () => void;
+    onDownload: () => void;
+  }>,
+) {
+  return () => {
+    const { filename, format, copyState, onCopy, onDownload } = handle.props;
+    const blocked = copyBlockedReason(format);
+    const jpegNote =
+      format === "jpeg" ? "Clipboards only take PNG, so this copies a PNG" : undefined;
+
+    return (
+      <div mix={footerStyle}>
+        <span class="file">{filename}</span>
+        <button
+          type="button"
+          disabled={blocked !== null}
+          title={blocked ?? jpegNote}
+          mix={[button.secondary, buttonSize.sm, on("click", onCopy)]}
+        >
+          <Icon name={copyState === "copied" ? "check" : "copy"} size={13} />
+          {COPY_LABELS[copyState]}
+        </button>
+        <button type="button" mix={[button.primary, buttonSize.sm, on("click", onDownload)]}>
+          <Icon name="download" size={13} />
+          Download
+        </button>
+      </div>
+    );
+  };
+}

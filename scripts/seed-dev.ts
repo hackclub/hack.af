@@ -157,9 +157,12 @@ const RANDOM_DESTINATIONS = [
   "https://jams.hackclub.com/jam/spotify-wrapped",
 ];
 
-async function main() {
-  const schema = await Bun.file(new URL("../db/dev-schema.sql", import.meta.url)).text();
+type HistoryRow = [string, string, string, string, number, string, Date];
+type ClickLog = { ids: string[]; times: Date[]; slugs: string[]; ips: string[] };
 
+// Returns the number of links already there, so an existing database isn't reseeded
+async function prepareDatabase(): Promise<number> {
+  const schema = await Bun.file(new URL("../db/dev-schema.sql", import.meta.url)).text();
   if (reset) {
     await pool.query(
       `DROP TABLE IF EXISTS "Links", "Log", slughistory, staff, staff_audit, schema_migrations CASCADE`,
@@ -167,10 +170,142 @@ async function main() {
   }
   await pool.query(schema);
   await runMigrations(pool);
-
   const existing = await pool.query(`SELECT count(*)::int AS count FROM "Links"`);
-  if (existing.rows[0].count > 0) {
-    console.log(`Links already has ${existing.rows[0].count} rows. Use --reset to reseed.`);
+  return existing.rows[0].count;
+}
+
+function allLinks(): SeedLink[] {
+  const links: SeedLink[] = [...LINKS];
+  for (let i = 0; i < 70; i++) {
+    links.push({
+      slug: randomSlug(),
+      destination: pick(RANDOM_DESTINATIONS),
+      weight: random() * 0.8,
+    });
+  }
+  return links;
+}
+
+// Created, then each earlier destination it was repointed from, then its note
+function historyFor(link: SeedLink): HistoryRow[] {
+  const rows: HistoryRow[] = [];
+  let at = now - (40 + Math.floor(random() * 700)) * DAY;
+  const versions = [...(link.previous ?? []), link.destination];
+  versions.forEach((destination, index) => {
+    const action = index === 0 ? "Created" : "Updated";
+    rows.push([link.slug, destination, action, "", rows.length + 1, pick(STAFF), new Date(at)]);
+    at += Math.floor(random() * (now - at) * 0.6);
+  });
+  if (link.note) {
+    rows.push([
+      link.slug,
+      link.destination,
+      "Note",
+      link.note,
+      rows.length + 1,
+      pick(STAFF),
+      new Date(at + DAY),
+    ]);
+  }
+  return rows;
+}
+
+// Clicks per day for the last 120 days, with weekly rhythm and launch spikes
+function addClicks(link: SeedLink, log: ClickLog) {
+  for (let daysAgo = 119; daysAgo >= 0; daysAgo--) {
+    const weekday = new Date(now - daysAgo * DAY).getUTCDay();
+    const weekly = weekday === 0 || weekday === 6 ? 0.55 : 1;
+    const spike =
+      link.spike === undefined ? 0 : Math.max(0, 8 - Math.abs(daysAgo - link.spike) * 1.6);
+    const expected = link.weight * weekly * (1 + spike) * (0.6 + random() * 0.8);
+    const count = Math.floor(expected + random());
+    for (let c = 0; c < count; c++) {
+      log.ids.push(Math.random().toString(36).slice(2, 15));
+      log.times.push(new Date(now - daysAgo * DAY - Math.floor(random() * DAY * 0.95)));
+      log.slugs.push(link.slug);
+      log.ips.push(`203.0.113.${Math.floor(random() * 254) + 1}`);
+    }
+  }
+}
+
+// A busy last couple of days so the activity feed has something to show
+function recentHistory(history: HistoryRow[]): HistoryRow[] {
+  const recent: [string, string, string, string][] = [
+    ["summer", "https://summer.hackclub.com", "Updated", "U04QH1TTMBP"],
+    ["wom", "https://forms.hackclub.com/t/wom-2026-interest", "Created", ORPHEUS],
+    ["fall-ama", "https://www.youtube.com/watch?v=4gS8rHk2ZQc", "Created", "U0266FRGP"],
+    ["nyc", "https://hackclub.com/events/nyc-2026/", "Created", "U032A2PMSE9"],
+  ];
+  return recent.map(([slug, destination, action, actor], index) => {
+    const version = history.filter((row) => row[0] === slug).length + 1;
+    return [
+      slug,
+      destination,
+      action,
+      "",
+      version,
+      actor,
+      new Date(now - (index * 5 + 1) * 3_600_000),
+    ];
+  });
+}
+
+function deletedHistory(): HistoryRow[] {
+  return DELETED.flatMap((deleted): HistoryRow[] => [
+    [deleted.slug, deleted.destination, "Created", "", 1, pick(STAFF), new Date(now - 200 * DAY)],
+    [
+      deleted.slug,
+      deleted.destination,
+      "Deleted",
+      "",
+      2,
+      pick(STAFF),
+      new Date(now - 2 * DAY - 7_200_000),
+    ],
+  ]);
+}
+
+async function insertLinks(links: SeedLink[]) {
+  for (const link of links) {
+    await pool.query(
+      `INSERT INTO "Links" ("Record Id", slug, destination, "Notes") VALUES ($1, $2, $3, $4)`,
+      [Math.random().toString(36).slice(2, 15), link.slug, link.destination, link.note ?? ""],
+    );
+  }
+}
+
+async function insertHistory(history: HistoryRow[]) {
+  for (const row of history) {
+    await pool.query(
+      `INSERT INTO slughistory (slug, new_url, action_type, note, version, changed_by, changed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      row,
+    );
+  }
+}
+
+async function insertClicks(log: ClickLog) {
+  for (let i = 0; i < log.ids.length; i += 5000) {
+    const batch = (values: unknown[]) => values.slice(i, i + 5000);
+    await pool.query(
+      `INSERT INTO "Log" ("Record Id", "Timestamp", "Descriptive Timestamp", "Client IP", "Slug", "URL", "User Agent", "Counter")
+       SELECT id, to_char(t AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), t, ip, slug, 'https://hack.club/' || slug, 'Mozilla/5.0', 1
+       FROM unnest($1::text[], $2::timestamptz[], $3::text[], $4::text[]) AS u(id, t, slug, ip)`,
+      [batch(log.ids), batch(log.times), batch(log.slugs), batch(log.ips)],
+    );
+  }
+
+  // All-time clicks include years of traffic from before the Log table existed
+  await pool.query(`
+    UPDATE "Links" l SET "Clicks" = c.count + (c.count * (2 + (abs(hashtext(l.slug)) % 9)))
+    FROM (SELECT "Slug", count(*)::int AS count FROM "Log" GROUP BY "Slug") c
+    WHERE c."Slug" = l.slug`);
+}
+
+async function main() {
+  const existing = await prepareDatabase();
+  if (existing > 0) {
+    console.log(`Links already has ${existing} rows. Use --reset to reseed.`);
     return;
   }
 
@@ -180,146 +315,22 @@ async function main() {
     [ORPHEUS],
   );
 
-  const links: SeedLink[] = [...LINKS];
-  for (let i = 0; i < 70; i++) {
-    links.push({
-      slug: randomSlug(),
-      destination: pick(RANDOM_DESTINATIONS),
-      weight: random() * 0.8,
-    });
-  }
-
-  const history: [string, string, string, string, number, string, Date][] = [];
-  const logIds: string[] = [];
-  const logTimes: Date[] = [];
-  const logSlugs: string[] = [];
-  const logIps: string[] = [];
-
+  const links = allLinks();
+  const history: HistoryRow[] = [];
+  const log: ClickLog = { ids: [], times: [], slugs: [], ips: [] };
+  // One pass per link keeps the random sequence, and so the demo data, stable
   for (const link of links) {
-    const ageDays = 40 + Math.floor(random() * 700);
-    let at = now - ageDays * DAY;
-    const versions = [...(link.previous ?? []), link.destination];
-    let version = 1;
-
-    versions.forEach((destination, index) => {
-      history.push([
-        link.slug,
-        destination,
-        index === 0 ? "Created" : "Updated",
-        "",
-        version++,
-        pick(STAFF),
-        new Date(at),
-      ]);
-      at += Math.floor(random() * (now - at) * 0.6);
-    });
-    if (link.note) {
-      history.push([
-        link.slug,
-        link.destination,
-        "Note",
-        link.note,
-        version++,
-        pick(STAFF),
-        new Date(at + DAY),
-      ]);
-    }
-
-    // Clicks per day for the last 120 days, with weekly rhythm and launch spikes
-    for (let daysAgo = 119; daysAgo >= 0; daysAgo--) {
-      const weekday = new Date(now - daysAgo * DAY).getUTCDay();
-      const weekly = weekday === 0 || weekday === 6 ? 0.55 : 1;
-      const spike =
-        link.spike !== undefined ? Math.max(0, 8 - Math.abs(daysAgo - link.spike) * 1.6) : 0;
-      const expected = link.weight * weekly * (1 + spike) * (0.6 + random() * 0.8);
-      const count = Math.floor(expected + random());
-      for (let c = 0; c < count; c++) {
-        logIds.push(Math.random().toString(36).slice(2, 15));
-        logTimes.push(new Date(now - daysAgo * DAY - Math.floor(random() * DAY * 0.95)));
-        logSlugs.push(link.slug);
-        logIps.push(`203.0.113.${Math.floor(random() * 254) + 1}`);
-      }
-    }
+    history.push(...historyFor(link));
+    addClicks(link, log);
   }
+  history.push(...recentHistory(history), ...deletedHistory());
 
-  // A busy last couple of days so the activity feed has something to show
-  const recent: [string, string, string, string][] = [
-    ["summer", "https://summer.hackclub.com", "Updated", "U04QH1TTMBP"],
-    ["wom", "https://forms.hackclub.com/t/wom-2026-interest", "Created", ORPHEUS],
-    ["fall-ama", "https://www.youtube.com/watch?v=4gS8rHk2ZQc", "Created", "U0266FRGP"],
-    ["nyc", "https://hackclub.com/events/nyc-2026/", "Created", "U032A2PMSE9"],
-  ];
-  recent.forEach(([slug, destination, action, actor], index) => {
-    const version = history.filter((row) => row[0] === slug).length + 1;
-    history.push([
-      slug,
-      destination,
-      action,
-      "",
-      version,
-      actor,
-      new Date(now - (index * 5 + 1) * 3_600_000),
-    ]);
-  });
-
-  for (const deleted of DELETED) {
-    history.push([
-      deleted.slug,
-      deleted.destination,
-      "Created",
-      "",
-      1,
-      pick(STAFF),
-      new Date(now - 200 * DAY),
-    ]);
-    history.push([
-      deleted.slug,
-      deleted.destination,
-      "Deleted",
-      "",
-      2,
-      pick(STAFF),
-      new Date(now - 2 * DAY - 7_200_000),
-    ]);
-  }
-
-  for (const link of links) {
-    await pool.query(
-      `INSERT INTO "Links" ("Record Id", slug, destination, "Notes") VALUES ($1, $2, $3, $4)`,
-      [Math.random().toString(36).slice(2, 15), link.slug, link.destination, link.note ?? ""],
-    );
-  }
-
-  for (const row of history) {
-    await pool.query(
-      `INSERT INTO slughistory (slug, new_url, action_type, note, version, changed_by, changed_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      row,
-    );
-  }
-
-  for (let i = 0; i < logIds.length; i += 5000) {
-    await pool.query(
-      `INSERT INTO "Log" ("Record Id", "Timestamp", "Descriptive Timestamp", "Client IP", "Slug", "URL", "User Agent", "Counter")
-       SELECT id, to_char(t AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), t, ip, slug, 'https://hack.club/' || slug, 'Mozilla/5.0', 1
-       FROM unnest($1::text[], $2::timestamptz[], $3::text[], $4::text[]) AS u(id, t, slug, ip)`,
-      [
-        logIds.slice(i, i + 5000),
-        logTimes.slice(i, i + 5000),
-        logSlugs.slice(i, i + 5000),
-        logIps.slice(i, i + 5000),
-      ],
-    );
-  }
-
-  // All-time clicks include years of traffic from before the Log table existed
-  await pool.query(`
-    UPDATE "Links" l SET "Clicks" = c.count + (c.count * (2 + (abs(hashtext(l.slug)) % 9)))
-    FROM (SELECT "Slug", count(*)::int AS count FROM "Log" GROUP BY "Slug") c
-    WHERE c."Slug" = l.slug`);
+  await insertLinks(links);
+  await insertHistory(history);
+  await insertClicks(log);
 
   console.log(
-    `Seeded ${links.length} links, ${history.length} history rows and ${logIds.length} clicks.`,
+    `Seeded ${links.length} links, ${history.length} history rows and ${log.ids.length} clicks.`,
   );
 }
 
