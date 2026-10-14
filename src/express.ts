@@ -7,12 +7,23 @@ import { fileURLToPath } from "url";
 import { incrementMetric, timingMetric } from "./metrics";
 import { cache } from "./cache";
 import { client } from "./db";
+import { manageHost, manageHosts } from "../manage/env";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // Middleware
 if (Bun.env.NODE_ENV !== "development" && Bun.env.NODE_ENV !== "test") {
   app.use(forceHttps);
+}
+
+// The dashboard lives on its own host so it can never collide with a slug.
+// It's loaded lazily so the redirect path doesn't pay for it on boot.
+const loadManage = () => import("../manage/server").then((mod) => mod.manageListener);
+if (manageHost) {
+  app.use((req, res, next) => {
+    if (!manageHosts.includes(req.hostname.toLowerCase())) return next();
+    loadManage().then((listener) => listener(req, res), next);
+  });
 }
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
@@ -203,7 +214,7 @@ const lookup = async (slug: string) => {
     } else {
       incrementMetric("lookup.cache.miss", 1);
       console.log("Cache miss");
-      const res = await client.query('SELECT * FROM "Links" WHERE slug=$1', [slug]);
+      const res = await client.query('SELECT slug, destination FROM "Links" WHERE slug=$1', [slug]);
 
       if (res.rows.length > 0) {
         const record = res.rows[0];
@@ -305,6 +316,9 @@ function forceHttps(req: Request, res: Response, next: Function) {
 }
 
 export function initializeApp() {
+  if (manageHost) {
+    loadManage().catch((error) => console.error("Failed to load the dashboard:", error));
+  }
   const port = Bun.env.PORT || 3000;
   const server = app.listen(port, () => {
     console.log("hack.af is up and running on port", port);

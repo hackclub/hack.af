@@ -1,8 +1,8 @@
 import { App } from "@slack/bolt";
 import { incrementMetric } from "./metrics";
-import isStaffMember from "./StaffMembers";
+import { isStaffMember } from "./staff";
 import { client } from "./db";
-import { cache } from "./cache";
+import { LinkError, SHORT_DOMAIN, createLink, deleteLink, setLink, updateNote } from "./links";
 import type { KnownBlock } from "@slack/types";
 import { writeFile } from "fs/promises";
 import path from "path";
@@ -26,97 +26,39 @@ export function InitSlackApp() {
 
     const args = command.text.split(" ");
     const originalCommand = `${command.command} ${command.text}`;
-    const isStaff = isStaffMember(command.user_id);
+    const isStaff = await isStaffMember(command.user_id);
     async function changeSlug(slug: string, newDestination: string) {
-      newDestination = newDestination.replace(/^[*_`]+|[*_`]+$/g, "");
-      let existingRes;
+      let result;
       try {
-        existingRes = await client.query(`SELECT * FROM "Links" WHERE slug = $1`, [slug]);
+        result = await setLink(slug, newDestination, command.user_id);
       } catch (error) {
-        console.error("Database error during SELECT:", error);
-        throw new Error("Error checking for existing slug");
+        if (error instanceof LinkError) throw error;
+        console.error("Database error in changeSlug:", error);
+        throw new Error("Error saving the slug");
       }
 
-      if (existingRes.rowCount === null) {
-        console.error("Database error: rowCount is null for SELECT query");
-        throw new Error("Error checking for existing slug");
-      }
+      const text = result.created
+        ? `Created! Now ${SHORT_DOMAIN}/${slug} goes to ${newDestination}.`
+        : `Updated! Now ${SHORT_DOMAIN}/${slug} is switched from ${result.previous} to ${newDestination}.`;
 
-      const isUpdate = existingRes && existingRes.rowCount > 0;
-
-      if (isUpdate) {
-        const lastDestination = decodeURIComponent(existingRes.rows[0].destination);
-        try {
-          await client.query(`UPDATE "Links" SET destination = $1 WHERE slug = $2`, [
-            newDestination,
-            slug,
-          ]);
-
-          // Invalidate the cache entry since we've updated the slug such that it reloads next request
-          cache.delete(slug);
-
-          await insertSlugHistory(slug, newDestination, "Updated", "", command.user_id);
-          return {
-            text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
-            blocks: [
+      return {
+        text,
+        blocks: [
+          {
+            type: "section",
+            text: { type: "mrkdwn", text },
+          },
+          {
+            type: "context",
+            elements: [
               {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `Updated! Now hack.club/${slug} is switched from ${decodeURIComponent(lastDestination)} to ${newDestination}.`,
-                },
-              },
-              {
-                type: "context",
-                elements: [
-                  {
-                    type: "mrkdwn",
-                    text: `Request made by <@${command.user_id}>`,
-                  },
-                ],
+                type: "mrkdwn",
+                text: `Request made by <@${command.user_id}>`,
               },
             ],
-          };
-        } catch (error) {
-          console.error("Database error during UPDATE:", error);
-          throw new Error("Error updating the slug");
-        }
-      } else {
-        try {
-          await client.query(
-            `INSERT INTO "Links" ("Record Id", slug, destination) 
-                    VALUES ($1, $2, $3)`,
-            [Math.random().toString(36).substring(2, 15), slug, newDestination],
-          );
-
-          await insertSlugHistory(slug, newDestination, "Created", "", command.user_id);
-
-          return {
-            text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
-            blocks: [
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `Created! Now hack.club/${slug} goes to ${newDestination}.`,
-                },
-              },
-              {
-                type: "context",
-                elements: [
-                  {
-                    type: "mrkdwn",
-                    text: `Request made by <@${command.user_id}>`,
-                  },
-                ],
-              },
-            ],
-          };
-        } catch (error) {
-          console.error("Database error during INSERT:", error);
-          throw new Error("Error creating the slug");
-        }
-      }
+          },
+        ],
+      };
     }
 
     async function searchSlug(searchTerm: string) {
@@ -208,31 +150,18 @@ export function InitSlackApp() {
     }
 
     async function shortenUrl(url: string) {
-      const originalUrl = encodeURIComponent(url);
-      let slug = Math.random().toString(36).substring(7);
-      const recordId = Math.random().toString(36).substring(2, 15);
+      const { slug } = await createLink({ destination: url }, command.user_id);
 
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://hack.club/${slug}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=https://${SHORT_DOMAIN}/${slug}`;
 
-      await client.query(
-        `
-      INSERT INTO "Links" ("Record Id", slug, destination, "Log", "Clicks", "QR URL", "Visitor IPs", "Notes") 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `,
-        [recordId, slug, originalUrl, [], 0, qrUrl, [], ""],
-      );
-
-      let msg = `Your short URL: https://hack.club/${slug} -> ${url}`;
-      let blockMsg = `Your short URL: *<https://hack.club/${slug}|hack.club/${slug}>* -> ${url}`;
+      let msg = `Your short URL: https://${SHORT_DOMAIN}/${slug} -> ${url}`;
+      let blockMsg = `Your short URL: *<https://${SHORT_DOMAIN}/${slug}|${SHORT_DOMAIN}/${slug}>* -> ${url}`;
 
       if (isStaff) {
         msg += "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
         blockMsg +=
           "\nTo change the destination URL, use `/hack.af set [slug] [new destination URL]`.";
       }
-
-      // Invalidate the cache entry that has been updated
-      cache.delete(slug);
 
       return {
         text: msg,
@@ -267,15 +196,7 @@ export function InitSlackApp() {
     }
 
     async function deleteSlug(slug: string) {
-      cache.delete(slug);
-
-      await client.query(
-        `
-        DELETE FROM "Links"
-        WHERE slug = $1
-      `,
-        [slug],
-      );
+      await deleteLink(slug, command.user_id);
 
       return {
         text: `URL for slug ${slug} has been successfully deleted.`,
@@ -412,7 +333,7 @@ export function InitSlackApp() {
         parameters: "[slug-name]: The slug you want to retrieve history of.",
       },
       note: {
-        run: updateNotes,
+        run: (...args: string[]) => updateNotes(command.user_id, ...args),
         arguments: [-1],
         staffRequired: true,
         helpEntry: "Add or update notes to a slug.",
@@ -476,6 +397,8 @@ export function InitSlackApp() {
           ? await commandEntry.run(...args.slice(1))
           : await commandEntry.run(...args.slice(1, commandEntry.arguments[0]! + 1));
 
+        // Some commands reply with text only; give them a section so the context line doesn't replace it
+        result.blocks ??= [{ type: "section", text: { type: "mrkdwn", text: result.text } }];
         result.blocks.push({
           type: "context",
           elements: [
@@ -921,41 +844,20 @@ async function getHistory(slug: string) {
   return formatHistory(history, note);
 }
 
-async function updateNotes(...args: string[]) {
-  console.log(args);
-
-  const slug = args[0];
-
-  const Note = args.slice(1).join(" ");
+async function updateNotes(userId: string, ...args: string[]) {
+  const slug = args[0] ?? "";
+  const note = args.slice(1).join(" ");
 
   try {
-    const res = await client.query(
-      `
-        UPDATE "Links" SET "Notes" = $1 WHERE "slug" = $2 RETURNING *
-        `,
-      [Note, slug],
-    );
-    if (res.rowCount === null) {
-      console.error("Database error: rowCount is null for UPDATE query");
-      return {
-        text: `An error occurred while updating the note`,
-        response_type: "ephemeral",
-      };
-    }
-    if (res.rowCount > 0) {
-      console.log("Note updated successfully");
-      return {
-        text: `Note updated successfully \n New Note for ${slug} is ${Note}`,
-        response_type: "ephemeral",
-      };
-    } else {
-      console.log("Slug not found");
-      return {
-        text: `Slug not found`,
-        response_type: "ephemeral",
-      };
-    }
+    await updateNote(slug, note, userId);
+    return {
+      text: `Note updated successfully \n New Note for ${slug} is ${note}`,
+      response_type: "ephemeral",
+    };
   } catch (error) {
+    if (error instanceof LinkError) {
+      return { text: `Slug not found`, response_type: "ephemeral" };
+    }
     console.error("Database error:", error);
     return {
       text: `An error occurred while updating the note`,
