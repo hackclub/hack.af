@@ -30,7 +30,7 @@
     "url": "^0.11.4"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.3",
+    "@types/bun": "^1.4.4",
     "oxfmt": "^0.73.0",
     "oxlint": "^1.88.0"
   },
