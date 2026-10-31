@@ -144,15 +144,20 @@ app.get(["/*path", "/"], (req: Request, res: Response) => {
         res.redirect(307, finalURL);
       },
       (_err) => {
-        if (slug.startsWith("cf-"))
+        if (slug.startsWith("cf-")) {
           res.redirect(302, "https://campfire.hackclub.com/" + slug.substring(3));
-        if (slug.startsWith("hv-"))
+          return;
+        }
+        if (slug.startsWith("hv-")) {
           res.redirect(302, "https://haven.hackclub.com/" + slug.substring(3));
+          return;
+        }
 
         res.redirect(302, "https://hackclub.com/404");
       },
     )
     .catch((_err) => {
+      if (res.headersSent) return;
       res.redirect(302, "https://goo.gl/" + slug);
     });
 });
