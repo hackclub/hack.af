@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@slack/bolt": "^4.7.3",
-    "@slack/types": "^3.2.0",
+    "@slack/types": "^3.3.0",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",
     "@types/response-time": "^2.3.9",
